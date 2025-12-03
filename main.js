@@ -408,6 +408,7 @@
         }
 
         function handleLogin() {
+            localStorage.setItem('isFirstLogin', 'true');
             const username = usernameInput.value.trim();
             const password = passwordInput.value;
 
@@ -1245,7 +1246,7 @@
                 const [, index] = id.split('-');
                 return scheduleData[index]?.activity.includes('Wake up') && completedTasks[id];
             });
-            if (wakeUpTasks.length >= 7) {
+            if (wakeUpTasks.length >= 3) {
                 awardAchievement('early_bird');
             }
 
@@ -1254,7 +1255,7 @@
                 const [, index] = id.split('-');
                 return scheduleData[index]?.category === 'prayer' && completedTasks[id];
             });
-            if (prayerTasks.length >= 150) { // 30 days * 5 prayers
+            if (prayerTasks.length >= 35) { // 7 days * 5 prayers
                 awardAchievement('prayer_perfect');
             }
 
@@ -1263,7 +1264,7 @@
                 const [, index] = id.split('-');
                 return scheduleData[index]?.category === 'study' && completedTasks[id];
             });
-            if (studyTasks.length >= 20) { // 5 days * 4 study sessions
+            if (studyTasks.length >= 28) { // 7 days * 4 study sessions
                 awardAchievement('study_streak');
             }
         }
@@ -2563,3 +2564,1066 @@
                 setTimeout(() => scrollBtn.classList.remove('pulse'), 3000);
             });
         })();
+
+            // ============================================================================
+           // PERFECT ONBOARDING TOUR - SMOOTH & PRODUCTION READY
+          // ============================================================================
+
+            class OnboardingTour {
+                constructor() {
+                    this.currentStep = 0;
+                    this.isActive = false;
+                    this.steps = [];
+                    this.highlightedElement = null;
+                    this.isTransitioning = false;
+                    this.tourId = 'umulkher-tour-v1';
+
+                    // Bind methods
+                    this.next = this.next.bind(this);
+                    this.prev = this.prev.bind(this);
+                    this.start = this.start.bind(this);
+                    this.end = this.end.bind(this);
+                    this.skip = this.skip.bind(this);
+                    this.restart = this.restart.bind(this);
+
+                    // Initialize
+                    this.init();
+                }
+
+                init() {
+                    // Define tour steps
+                    this.steps = [
+                        {
+                            id: 'welcome',
+                            title: "🌟 Welcome to Your Daily Schedule!",
+                            message: "This is your personal command center for organizing prayers, studies, family time, and personal growth. Let's explore!",
+                            element: "#logo",
+                            position: "bottom",
+                            tooltip: "right",
+                            animation: "fadeIn",
+                            duration: 4000,
+                            action: () => this.scrollToElement("#logo")
+                        },
+                        {
+                            id: 'timeline',
+                            title: "📅 Your Daily Timeline",
+                            message: "Each color represents different activities:<br>🟢 Prayer & Spiritual<br>🔵 Study & Learning<br>🟣 Family & Personal<br>🟡 Breaks & Rest",
+                            element: "#scheduleTimeline",
+                            position: "right",
+                            tooltip: "right",
+                            animation: "slideInRight",
+                            duration: 4500,
+                            action: () => this.scrollToElement("#scheduleTimeline")
+                        },
+                        {
+                            id: 'tasks',
+                            title: "✅ Manage Tasks Easily",
+                            message: "• <strong>Checkbox</strong> - Mark as complete<br>• <strong>Skip</strong> - Reschedule for later<br>• <strong>View Details</strong> - More information<br>• <strong>Remind</strong> - Set notifications",
+                            element: ".time-item:first-child .task-meta",
+                            position: "top",
+                            tooltip: "top",
+                            animation: "pulse",
+                            duration: 5000,
+                            action: () => {
+                                this.scrollToElement(".time-item:first-child");
+                                setTimeout(() => {
+                                    const detailsBtn = document.querySelector('.time-item:first-child .task-details-btn');
+                                    if (detailsBtn) detailsBtn.click();
+                                }, 500);
+                            }
+                        },
+                        {
+                            id: 'days',
+                            title: "📆 Switch Days Instantly",
+                            message: "Each day has different subjects:<br>• Monday: Physics, Kiswahili<br>• Tuesday: Chemistry, English<br>• Wednesday: Biology, Physics<br>• Thursday: Mathematics, Chemistry",
+                            element: ".day-navigation",
+                            position: "bottom",
+                            tooltip: "bottom",
+                            animation: "bounce",
+                            duration: 4000,
+                            action: () => this.scrollToElement(".day-navigation")
+                        },
+                        {
+                            id: 'prayer',
+                            title: "🕌 Prayer Times & Calendar",
+                            message: "<strong>Auto-detect location</strong> for accurate prayer times.<br>Calendar shows all your scheduled events.<br>Red dot = tasks scheduled for that day.",
+                            element: ".prayer-times",
+                            position: "left",
+                            tooltip: "left",
+                            animation: "fadeIn",
+                            duration: 4500,
+                            action: () => this.scrollToElement(".prayer-times")
+                        },
+                        {
+                            id: 'weather',
+                            title: "🌤️ Real-time Weather",
+                            message: "Automatically shows Kitale weather.<br>Click refresh for latest updates.<br>3-day forecast helps plan outdoor activities.",
+                            element: ".weather-section",
+                            position: "left",
+                            tooltip: "left",
+                            animation: "slideInLeft",
+                            duration: 4000,
+                            action: () => this.scrollToElement(".weather-section")
+                        },
+                        {
+                            id: 'progress',
+                            title: "📊 Track Your Growth",
+                            message: "<strong>Achievements</strong> - Earn badges for consistency<br><strong>Habits</strong> - Build daily routines<br><strong>Quran Tracker</strong> - Monitor reading progress<br><strong>Notes</strong> - Jot down important thoughts",
+                            element: ".achievements-section",
+                            position: "left",
+                            tooltip: "left",
+                            animation: "fadeIn",
+                            duration: 5000,
+                            action: () => this.scrollToElement(".achievements-section")
+                        },
+                        {
+                            id: 'tools',
+                            title: "⚡ Productivity Tools",
+                            message: "<strong>Pomodoro Timer</strong> - 25 min focus, 5 min break<br><strong>Voice Commands</strong> - 'Next task', 'Mark done'<br><strong>File Upload</strong> - Store study materials<br><strong>Backup</strong> - Never lose your data",
+                            element: "#pomodoroBtn",
+                            position: "bottom",
+                            tooltip: "top",
+                            animation: "pulse",
+                            duration: 4500,
+                            action: () => this.scrollToElement("#pomodoroBtn")
+                        },
+                        {
+                            id: 'connect',
+                            title: "💬 Connect with Khisa",
+                            message: "<strong>Request Chat</strong> - Instant messaging<br><strong>Request Call</strong> - Voice conversation<br>Khisa gets email notification immediately<br>He's always ready to help!",
+                            element: ".chat-section",
+                            position: "left",
+                            tooltip: "left",
+                            animation: "slideInLeft",
+                            duration: 4000,
+                            action: () => this.scrollToElement(".chat-section")
+                        },
+                        {
+                            id: 'controls',
+                            title: "⚙️ Your Control Center",
+                            message: "• <strong>Profile</strong> - Personal settings<br>• <strong>Settings</strong> - Customize app<br>• <strong>Backup</strong> - Save all data<br>• <strong>Logout</strong> - Secure exit",
+                            element: ".user-info",
+                            position: "bottom",
+                            tooltip: "bottom",
+                            animation: "fadeIn",
+                            duration: 4000,
+                            action: () => this.scrollToElement(".user-info")
+                        },
+                        {
+                            id: 'complete',
+                            title: "🎉 You're Ready to Shine!",
+                            message: "<strong>Remember:</strong><br>• Data saves automatically<br>• Backup weekly<br>• Use Pomodoro for focus<br>• Connect with Khisa anytime<br><br>Start planning your perfect day!",
+                            element: null,
+                            position: "center",
+                            tooltip: "center",
+                            animation: "celebrate",
+                            duration: 5000,
+                            action: () => window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }
+                    ];
+
+                    // Create DOM elements
+                    this.createTourElements();
+
+                    // Setup event listeners
+                    this.setupEventListeners();
+
+                    // Check if should auto-start
+                    this.checkAutoStart();
+                }
+
+                createTourElements() {
+                    // Create overlay
+                    if (!document.getElementById('tourOverlay')) {
+                        const overlay = document.createElement('div');
+                        overlay.id = 'tourOverlay';
+                        overlay.className = 'tour-overlay';
+                        overlay.innerHTML = '<div class="tour-cutout"></div>';
+                        document.body.appendChild(overlay);
+                    }
+
+                    // Create tooltip
+                    if (!document.getElementById('tourTooltip')) {
+                        const tooltip = document.createElement('div');
+                        tooltip.id = 'tourTooltip';
+                        tooltip.className = 'tour-tooltip';
+                        tooltip.innerHTML = `
+                            <div class="tour-tooltip-header">
+                                <h3 class="tour-tooltip-title" id="tourTitle"></h3>
+                                <div class="tour-tooltip-progress">
+                                    <span id="tourCurrentStep">1</span> / <span id="tourTotalSteps">${this.steps.length}</span>
+                                </div>
+                                <button class="tour-close" id="tourClose">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="tour-tooltip-body">
+                                <div class="tour-tooltip-message" id="tourMessage"></div>
+                                <div class="tour-tooltip-illustration">
+                                    <i class="fas fa-star" id="tourIcon"></i>
+                                </div>
+                            </div>
+                            <div class="tour-tooltip-footer">
+                                <button class="tour-btn tour-skip" id="tourSkip">
+                                    <i class="fas fa-forward"></i> Skip Tour
+                                </button>
+                                <div class="tour-tooltip-navigation">
+                                    <button class="tour-btn tour-prev" id="tourPrev">
+                                        <i class="fas fa-arrow-left"></i> Back
+                                    </button>
+                                    <button class="tour-btn tour-next" id="tourNext">
+                                        Next <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                    <button class="tour-btn tour-finish" id="tourFinish">
+                                        Let's Go! <i class="fas fa-rocket"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(tooltip);
+                    }
+
+                    // Create pointer
+                    if (!document.getElementById('tourPointer')) {
+                        const pointer = document.createElement('div');
+                        pointer.id = 'tourPointer';
+                        pointer.className = 'tour-pointer';
+                        document.body.appendChild(pointer);
+                    }
+
+                    // Add restart button to sidebar if doesn't exist
+                    if (!document.getElementById('tourRestartBtn')) {
+                        const restartBtn = document.createElement('button');
+                        restartBtn.id = 'tourRestartBtn';
+                        restartBtn.className = 'header-btn';
+                        restartBtn.style.cssText = 'width: 100%; margin-top: 10px; display: none;';
+                        restartBtn.innerHTML = '<i class="fas fa-redo"></i> Restart Tutorial';
+
+                        // Find a good place to insert it (maybe in Quick Actions)
+                        const quickActions = document.querySelector('.quick-actions');
+                        if (quickActions) {
+                            quickActions.parentNode.insertBefore(restartBtn, quickActions.nextSibling);
+                        } else {
+                            // Add to sidebar
+                            const sidebar = document.querySelector('.sidebar');
+                            if (sidebar) {
+                                const card = document.createElement('div');
+                                card.className = 'sidebar-card';
+                                card.innerHTML = '<h3 class="card-title"><i class="fas fa-graduation-cap"></i> Tutorial</h3>';
+                                card.appendChild(restartBtn);
+                                sidebar.appendChild(card);
+                            }
+                        }
+                    }
+                }
+
+                setupEventListeners() {
+                    // Navigation
+                    document.getElementById('tourNext').addEventListener('click', this.next);
+                    document.getElementById('tourPrev').addEventListener('click', this.prev);
+                    document.getElementById('tourFinish').addEventListener('click', this.end);
+                    document.getElementById('tourSkip').addEventListener('click', this.skip);
+                    document.getElementById('tourClose').addEventListener('click', this.skip);
+                    document.getElementById('tourRestartBtn').addEventListener('click', this.restart);
+
+                    // Keyboard
+                    document.addEventListener('keydown', (e) => {
+                        if (!this.isActive) return;
+
+                        switch(e.key) {
+                            case 'Escape':
+                                this.skip();
+                                break;
+                            case 'ArrowRight':
+                            case ' ':
+                                e.preventDefault();
+                                this.next();
+                                break;
+                            case 'ArrowLeft':
+                                e.preventDefault();
+                                this.prev();
+                                break;
+                        }
+                    });
+
+                    // Click on highlighted element to proceed
+                    document.addEventListener('click', (e) => {
+                        if (!this.isActive || this.isTransitioning) return;
+
+                        if (this.highlightedElement && this.highlightedElement.contains(e.target)) {
+                            this.next();
+                        }
+                    });
+                }
+
+                checkAutoStart() {
+                    const hasSeenTour = localStorage.getItem(this.tourId);
+                    const isFirstLogin = localStorage.getItem('isFirstLogin') === 'true';
+
+                    if ((!hasSeenTour && userAuthenticated) || isFirstLogin) {
+                        // Delay to let page load completely
+                        setTimeout(() => this.start(), 1800);
+                        localStorage.setItem('isFirstLogin', 'false');
+                    } else if (hasSeenTour) {
+                        // Show restart button
+                        document.getElementById('tourRestartBtn').style.display = 'block';
+                    }
+                }
+
+                start() {
+                    if (this.isActive) return;
+
+                    this.isActive = true;
+                    this.currentStep = 0;
+
+                    // Show elements with animation
+                    document.getElementById('tourOverlay').classList.add('active');
+                    setTimeout(() => {
+                        document.getElementById('tourTooltip').classList.add('active');
+                    }, 300);
+
+                    // Update total steps
+                    document.getElementById('tourTotalSteps').textContent = this.steps.length;
+
+                    // Show current step
+                    this.showStep();
+
+                    // Mark as seen
+                    localStorage.setItem(this.tourId, 'true');
+
+                    // Show restart button
+                    document.getElementById('tourRestartBtn').style.display = 'block';
+
+                    // Send notification
+                    this.sendNotification('Tour started', 'Interactive tutorial has begun');
+                }
+
+                showStep() {
+                    if (this.currentStep >= this.steps.length) {
+                        this.end();
+                        return;
+                    }
+
+                    this.isTransitioning = true;
+
+                    const step = this.steps[this.currentStep];
+
+                    // Update UI
+                    document.getElementById('tourTitle').textContent = step.title;
+                    document.getElementById('tourMessage').innerHTML = step.message;
+                    document.getElementById('tourCurrentStep').textContent = this.currentStep + 1;
+                    document.getElementById('tourIcon').className = this.getStepIcon(step.id);
+
+                    // Update buttons
+                    document.getElementById('tourPrev').style.display = this.currentStep === 0 ? 'none' : 'flex';
+                    document.getElementById('tourNext').style.display = this.currentStep === this.steps.length - 1 ? 'none' : 'flex';
+                    document.getElementById('tourFinish').style.display = this.currentStep === this.steps.length - 1 ? 'flex' : 'none';
+
+                    // Remove previous highlight
+                    if (this.highlightedElement) {
+                        this.highlightedElement.classList.remove('tour-highlighted');
+                        this.highlightedElement.style.zIndex = '';
+                    }
+
+                    // Execute step action
+                    if (step.action) {
+                        step.action();
+                    }
+
+                    // Highlight element
+                    if (step.element) {
+                        this.highlightElement(step);
+                    } else {
+                        // Final step - center everything
+                        this.positionCenter();
+                    }
+
+                    // Add animation class
+                    document.getElementById('tourTooltip').className = `tour-tooltip active ${step.animation}`;
+
+                    // Auto-advance after duration (optional)
+                    if (step.duration) {
+                        clearTimeout(this.autoAdvanceTimer);
+                        this.autoAdvanceTimer = setTimeout(() => this.next(), step.duration);
+                    }
+
+                    // Transition complete
+                    setTimeout(() => {
+                        this.isTransitioning = false;
+                    }, 500);
+                }
+
+                highlightElement(step) {
+                    const element = document.querySelector(step.element);
+                    if (!element) {
+                        console.warn(`Tour element not found: ${step.element}`);
+                        setTimeout(() => this.next(), 1000);
+                        return;
+                    }
+
+                    this.highlightedElement = element;
+
+                    // Add highlight class
+                    element.classList.add('tour-highlighted');
+                    element.style.zIndex = '10002';
+
+                    // Calculate positions
+                    const rect = element.getBoundingClientRect();
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+                    // Update cutout
+                    const overlay = document.getElementById('tourOverlay');
+                    overlay.style.setProperty('--cutout-top', `${rect.top + scrollTop - 10}px`);
+                    overlay.style.setProperty('--cutout-left', `${rect.left + scrollLeft - 10}px`);
+                    overlay.style.setProperty('--cutout-width', `${rect.width + 20}px`);
+                    overlay.style.setProperty('--cutout-height', `${rect.height + 20}px`);
+
+                    // Position tooltip
+                    this.positionTooltip(element, step.tooltip);
+
+                    // Position pointer
+                    this.positionPointer(element, step.position);
+
+                    // Ensure element is visible
+                    element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'center'
+                    });
+                }
+
+                positionTooltip(element, position) {
+                    const tooltip = document.getElementById('tourTooltip');
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    const elementRect = element.getBoundingClientRect();
+
+                    let top, left;
+                    const padding = 25;
+                    const viewportPadding = 20;
+
+                    switch(position) {
+                        case 'top':
+                            top = elementRect.top - tooltipRect.height - padding;
+                            left = elementRect.left + (elementRect.width / 2) - (tooltipRect.width / 2);
+                            break;
+                        case 'bottom':
+                            top = elementRect.bottom + padding;
+                            left = elementRect.left + (elementRect.width / 2) - (tooltipRect.width / 2);
+                            break;
+                        case 'left':
+                            top = elementRect.top + (elementRect.height / 2) - (tooltipRect.height / 2);
+                            left = elementRect.left - tooltipRect.width - padding;
+                            break;
+                        case 'right':
+                            top = elementRect.top + (elementRect.height / 2) - (tooltipRect.height / 2);
+                            left = elementRect.right + padding;
+                            break;
+                        default:
+                            // Center
+                            top = window.innerHeight / 2 - tooltipRect.height / 2;
+                            left = window.innerWidth / 2 - tooltipRect.width / 2;
+                    }
+
+                    // Keep within viewport
+                    top = Math.max(viewportPadding, Math.min(top, window.innerHeight - tooltipRect.height - viewportPadding));
+                    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+                    tooltip.style.top = `${top}px`;
+                    tooltip.style.left = `${left}px`;
+                }
+
+                positionPointer(element, position) {
+                    const pointer = document.getElementById('tourPointer');
+                    const elementRect = element.getBoundingClientRect();
+
+                    pointer.className = `tour-pointer ${position} active`;
+
+                    switch(position) {
+                        case 'top':
+                            pointer.style.top = `${elementRect.bottom}px`;
+                            pointer.style.left = `${elementRect.left + elementRect.width / 2 - 10}px`;
+                            break;
+                        case 'bottom':
+                            pointer.style.top = `${elementRect.top - 20}px`;
+                            pointer.style.left = `${elementRect.left + elementRect.width / 2 - 10}px`;
+                            break;
+                        case 'left':
+                            pointer.style.top = `${elementRect.top + elementRect.height / 2 - 10}px`;
+                            pointer.style.left = `${elementRect.right}px`;
+                            break;
+                        case 'right':
+                            pointer.style.top = `${elementRect.top + elementRect.height / 2 - 10}px`;
+                            pointer.style.left = `${elementRect.left - 20}px`;
+                            break;
+                    }
+                }
+
+                positionCenter() {
+                    const tooltip = document.getElementById('tourTooltip');
+                    const tooltipRect = tooltip.getBoundingClientRect();
+
+                    tooltip.style.top = `${window.innerHeight / 2 - tooltipRect.height / 2}px`;
+                    tooltip.style.left = `${window.innerWidth / 2 - tooltipRect.width / 2}px`;
+
+                    // Hide pointer
+                    document.getElementById('tourPointer').classList.remove('active');
+
+                    // Remove cutout
+                    document.getElementById('tourOverlay').style.cssText = '';
+                }
+
+                next() {
+                    if (this.isTransitioning || this.currentStep >= this.steps.length - 1) {
+                        this.end();
+                        return;
+                    }
+
+                    this.currentStep++;
+                    this.showStep();
+
+                    // Play sound (optional)
+                    this.playSound('next');
+                }
+
+                prev() {
+                    if (this.isTransitioning || this.currentStep <= 0) return;
+
+                    this.currentStep--;
+                    this.showStep();
+
+                    // Play sound (optional)
+                    this.playSound('prev');
+                }
+
+                end() {
+                    if (!this.isActive) return;
+
+                    this.isActive = false;
+                    this.isTransitioning = false;
+
+                    // Remove highlights
+                    if (this.highlightedElement) {
+                        this.highlightedElement.classList.remove('tour-highlighted');
+                        this.highlightedElement.style.zIndex = '';
+                    }
+
+                    // Hide elements with fade out
+                    document.getElementById('tourTooltip').classList.remove('active');
+                    setTimeout(() => {
+                        document.getElementById('tourOverlay').classList.remove('active');
+                        document.getElementById('tourPointer').classList.remove('active');
+                    }, 300);
+
+                    // Clear auto-advance timer
+                    clearTimeout(this.autoAdvanceTimer);
+
+                    // Show success notification
+                    this.sendNotification('Tour completed', 'You are now ready to use your daily schedule!');
+
+                    // Celebration effect
+                    this.celebrate();
+                }
+
+                skip() {
+                    if (confirm('Skip the tutorial? You can restart it anytime using the "Restart Tutorial" button.')) {
+                        this.end();
+                    }
+                }
+
+                restart() {
+                    if (confirm('Restart the tutorial?')) {
+                        this.currentStep = 0;
+                        this.start();
+                    }
+                }
+
+                // Helper methods
+                scrollToElement(selector) {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'center'
+                        });
+                    }
+                }
+
+                getStepIcon(stepId) {
+                    const icons = {
+                        'welcome': 'fas fa-star',
+                        'timeline': 'fas fa-calendar-alt',
+                        'tasks': 'fas fa-tasks',
+                        'days': 'fas fa-calendar-day',
+                        'prayer': 'fas fa-mosque',
+                        'weather': 'fas fa-cloud-sun',
+                        'progress': 'fas fa-chart-line',
+                        'tools': 'fas fa-tools',
+                        'connect': 'fas fa-comments',
+                        'controls': 'fas fa-cog',
+                        'complete': 'fas fa-trophy'
+                    };
+                    return icons[stepId] || 'fas fa-info-circle';
+                }
+
+                playSound(type) {
+                    // Optional: Add sound effects
+                    try {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        oscillator.frequency.setValueAtTime(type === 'next' ? 800 : 600, audioContext.currentTime);
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.1);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.5);
+                    } catch (e) {
+                        // Audio not supported - ignore
+                    }
+                }
+
+                celebrate() {
+                    // Add celebration effect
+                    for (let i = 0; i < 15; i++) {
+                        setTimeout(() => {
+                            const confetti = document.createElement('div');
+                            confetti.className = 'confetti';
+                            confetti.style.cssText = `
+                                position: fixed;
+                                width: 10px;
+                                height: 10px;
+                                background: ${['#d4af37', '#1e6b52', '#2a4d7a', '#6a4c93'][Math.floor(Math.random() * 4)]};
+                                border-radius: 50%;
+                                top: -20px;
+                                left: ${Math.random() * 100}vw;
+                                z-index: 99999;
+                                animation: confetti-fall ${0.5 + Math.random()}s linear forwards;
+                            `;
+                            document.body.appendChild(confetti);
+
+                            setTimeout(() => confetti.remove(), 2000);
+                        }, i * 100);
+                    }
+
+                    // Add confetti animation to CSS if not exists
+                    if (!document.getElementById('confetti-style')) {
+                        const style = document.createElement('style');
+                        style.id = 'confetti-style';
+                        style.textContent = `
+                            @keyframes confetti-fall {
+                                0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                                100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                }
+
+                sendNotification(title, message) {
+                    // Use your existing notification system
+                    if (typeof showNotification === 'function') {
+                        showNotification(title, message);
+                    }
+
+                    // Send email if function exists
+                    if (typeof sendEmail === 'function') {
+                        sendEmail(
+                            `Tour: ${title}`,
+                            `Umulkher ${title.toLowerCase()}\n${message}\nTime: ${new Date().toLocaleString()}`,
+                            'tour',
+                            'Onboarding'
+                        );
+                    }
+                }
+            }
+
+            // ============================================================================
+            // INITIALIZATION & INTEGRATION
+            // ============================================================================
+
+            // Create global instance
+            window.umulkherTour = null;
+
+            // Initialize when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                // Wait for page to fully load
+                setTimeout(() => {
+                    window.umulkherTour = new OnboardingTour();
+                }, 1000);
+            });
+
+            // Add this to your handleLogin function after successful login:
+            // localStorage.setItem('isFirstLogin', 'true');
+
+            // Add CSS for the tour (add this to your CSS file)
+            const tourCSS = `
+                /* Tour Overlay */
+                .tour-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.85);
+                    backdrop-filter: blur(8px);
+                    z-index: 9998;
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .tour-overlay.active {
+                    opacity: 1;
+                    visibility: visible;
+                }
+
+                .tour-overlay .tour-cutout {
+                    position: absolute;
+                    border: 3px solid #d4af37;
+                    border-radius: 16px;
+                    box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.15),
+                                inset 0 0 25px rgba(212, 175, 55, 0.4),
+                                0 0 50px rgba(212, 175, 55, 0.6);
+                    animation: tour-pulse 2s infinite;
+                    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                @keyframes tour-pulse {
+                    0%, 100% { box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.15),
+                                inset 0 0 25px rgba(212, 175, 55, 0.4),
+                                0 0 50px rgba(212, 175, 55, 0.6); }
+                    50% { box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.2),
+                                inset 0 0 30px rgba(212, 175, 55, 0.5),
+                                0 0 60px rgba(212, 175, 55, 0.8); }
+                }
+
+                /* Tour Tooltip */
+                .tour-tooltip {
+                    position: fixed;
+                    background: linear-gradient(145deg, #151515 0%, #1a1a1a 100%);
+                    border-radius: 20px;
+                    padding: 25px;
+                    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9),
+                                0 0 0 1px rgba(212, 175, 55, 0.3),
+                                0 0 40px rgba(212, 175, 55, 0.3);
+                    border: 1px solid rgba(212, 175, 55, 0.4);
+                    z-index: 9999;
+                    min-width: 350px;
+                    max-width: 450px;
+                    opacity: 0;
+                    visibility: hidden;
+                    transform: scale(0.95) translateY(20px);
+                    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                }
+
+                .tour-tooltip.active {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: scale(1) translateY(0);
+                }
+
+                .tour-tooltip::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 4px;
+                    background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
+                    border-radius: 20px 20px 0 0;
+                }
+
+                /* Animations */
+                .tour-tooltip.fadeIn { animation: fadeIn 0.5s ease; }
+                .tour-tooltip.slideInRight { animation: slideInRight 0.5s ease; }
+                .tour-tooltip.slideInLeft { animation: slideInLeft 0.5s ease; }
+                .tour-tooltip.bounce { animation: bounce 0.8s ease; }
+                .tour-tooltip.pulse { animation: pulse 1s ease infinite; }
+                .tour-tooltip.celebrate { animation: celebrate 0.6s ease; }
+
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideInRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+                @keyframes slideInLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+                @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+                @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+                @keyframes celebrate { 0% { transform: scale(0.5) rotate(-10deg); } 70% { transform: scale(1.05) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
+
+                /* Tooltip Content */
+                .tour-tooltip-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .tour-tooltip-title {
+                    font-family: 'Montserrat', sans-serif;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #fff;
+                    margin: 0;
+                    flex: 1;
+                }
+
+                .tour-tooltip-progress {
+                    background: rgba(212, 175, 55, 0.2);
+                    border-radius: 20px;
+                    padding: 8px 16px;
+                    font-weight: 700;
+                    color: #d4af37;
+                    font-family: 'Montserrat', sans-serif;
+                    margin: 0 15px;
+                    border: 1px solid rgba(212, 175, 55, 0.3);
+                }
+
+                .tour-close {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(212, 175, 55, 0.2);
+                    border-radius: 12px;
+                    color: #b0b0b0;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+
+                .tour-close:hover {
+                    background: rgba(212, 175, 55, 0.1);
+                    color: #d4af37;
+                    border-color: #d4af37;
+                }
+
+                .tour-tooltip-body {
+                    margin: 20px 0;
+                }
+
+                .tour-tooltip-message {
+                    font-size: 1.1rem;
+                    line-height: 1.6;
+                    color: #f5f5f5;
+                    margin-bottom: 20px;
+                }
+
+                .tour-tooltip-illustration {
+                    text-align: center;
+                    margin-top: 20px;
+                }
+
+                .tour-tooltip-illustration i {
+                    font-size: 3rem;
+                    color: #d4af37;
+                    opacity: 0.7;
+                }
+
+                .tour-tooltip-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 20px;
+                    padding-top: 20px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .tour-tooltip-navigation {
+                    display: flex;
+                    gap: 12px;
+                    margin-left: auto;
+                }
+
+                .tour-btn {
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(212, 175, 55, 0.2);
+                    background: rgba(212, 175, 55, 0.1);
+                    color: #f5f5f5;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-family: 'Inter', sans-serif;
+                }
+
+                .tour-btn:hover {
+                    background: rgba(212, 175, 55, 0.2);
+                    transform: translateY(-2px);
+                    border-color: #d4af37;
+                }
+
+                .tour-btn.tour-finish {
+                    background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
+                    color: #0a0a0a;
+                    border: none;
+                }
+
+                .tour-btn.tour-finish:hover {
+                    box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
+                }
+
+                /* Tour Pointer */
+                .tour-pointer {
+                    position: fixed;
+                    width: 0;
+                    height: 0;
+                    border-style: solid;
+                    z-index: 10000;
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: all 0.3s ease;
+                }
+
+                .tour-pointer.active {
+                    opacity: 1;
+                    visibility: visible;
+                }
+
+                .tour-pointer.top {
+                    border-width: 0 15px 15px 15px;
+                    border-color: transparent transparent #d4af37 transparent;
+                    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+                }
+
+                .tour-pointer.bottom {
+                    border-width: 15px 15px 0 15px;
+                    border-color: #d4af37 transparent transparent transparent;
+                    filter: drop-shadow(0 -3px 6px rgba(0,0,0,0.4));
+                }
+
+                .tour-pointer.left {
+                    border-width: 15px 15px 15px 0;
+                    border-color: transparent #d4af37 transparent transparent;
+                    filter: drop-shadow(3px 0 6px rgba(0,0,0,0.4));
+                }
+
+                .tour-pointer.right {
+                    border-width: 15px 0 15px 15px;
+                    border-color: transparent transparent transparent #d4af37;
+                    filter: drop-shadow(-3px 0 6px rgba(0,0,0,0.4));
+                }
+
+                /* Highlighted Element */
+                .tour-highlighted {
+                    position: relative !important;
+                    z-index: 10002 !important;
+                    animation: element-glow 2s infinite;
+                }
+
+                @keyframes element-glow {
+                    0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.3); }
+                    50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.5); }
+                }
+
+                /* Responsive */
+                @media (max-width: 768px) {
+                    .tour-tooltip {
+                        min-width: 280px;
+                        max-width: 90%;
+                        margin: 15px;
+                        padding: 20px;
+                    }
+
+                    .tour-tooltip-title {
+                        font-size: 1.3rem;
+                    }
+
+                    .tour-tooltip-progress {
+                        padding: 6px 12px;
+                        font-size: 0.9rem;
+                    }
+
+                    .tour-tooltip-message {
+                        font-size: 1rem;
+                    }
+
+                    .tour-btn {
+                        padding: 10px 18px;
+                        font-size: 0.9rem;
+                    }
+
+                    .tour-tooltip-footer {
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+
+                    .tour-tooltip-navigation {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .tour-tooltip {
+                        padding: 15px;
+                    }
+
+                    .tour-tooltip-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 10px;
+                    }
+
+                    .tour-tooltip-progress {
+                        align-self: flex-start;
+                    }
+
+                    .tour-close {
+                        position: absolute;
+                        top: 15px;
+                        right: 15px;
+                    }
+                }
+            `;
+
+            // Add CSS to document
+            if (!document.getElementById('tour-styles')) {
+                const style = document.createElement('style');
+                style.id = 'tour-styles';
+                style.textContent = tourCSS;
+                document.head.appendChild(style);
+            }
+            // Helper functions for tutorial
+            function showTourTips() {
+                const tips = [
+                    "💡 Pro Tip: Click on highlighted elements during the tour to advance faster",
+                    "🎯 Use 'Ctrl + Click' on Help & Support to restart tutorial anytime",
+                    "⌨️ During tour: Use arrow keys ← → to navigate, Space to next, Esc to skip",
+                    "📱 On mobile: Tap highlighted elements to move to next step",
+                    "💾 Remember: Your data auto-saves, but backup weekly for safety"
+                ];
+
+                const randomTip = tips[Math.floor(Math.random() * tips.length)];
+                showNotification('Quick Tip 💡', randomTip);
+            }
+
+            function showKeyboardShortcuts() {
+                showNotification('Keyboard Shortcuts ⌨️',
+                    '• Ctrl+P: Print schedule\n• Ctrl+E: Export PDF\n• Ctrl+S: Show stats\n• Ctrl+H: This help\n• During tour: ← → Arrows to navigate\n• Escape: Close/Skip');
+            }
+
+            // Make the restart function globally accessible
+            window.restartTour = function() {
+                if (window.umulkherTour) {
+                    window.umulkherTour.restart();
+                } else {
+                    // Fallback if tour instance isn't available
+                    localStorage.removeItem('umulkher-tour-v1');
+                    localStorage.setItem('isFirstLogin', 'true');
+                    showNotification('Tour Reset', 'Refresh the page to see the tutorial again!');
+                }
+            };
+
