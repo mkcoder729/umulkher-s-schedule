@@ -9,7 +9,7 @@
         const DEVELOPER_EMAIL = 'lemanuelneuro@gmail.com';
 
         // ====== APPLICATION DATA ======
-        const CORRECT_USERNAME = "Sakhi";
+        const CORRECT_USERNAME = "Asikh";
         const CORRECT_PASSWORD = "Umulkhisa@37";
 
         const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -2483,3 +2483,83 @@
                 updateProgress();
             }
         }
+
+
+        // Add this at the very end of your script, before the closing </script> tag
+        (function() {
+            // Create button
+            const scrollBtn = document.createElement('button');
+            scrollBtn.id = 'scrollToTopBtn';
+            scrollBtn.className = 'scroll-to-top';
+            scrollBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            scrollBtn.setAttribute('aria-label', 'Scroll to top');
+            scrollBtn.setAttribute('title', 'Scroll to top');
+            document.body.appendChild(scrollBtn);
+
+            // Add CSS if not already added
+            if (!document.querySelector('#scroll-to-top-style')) {
+                const style = document.createElement('style');
+                style.id = 'scroll-to-top-style';
+                style.textContent = `
+                    .scroll-to-top {
+                        position: fixed;
+                        bottom: 30px;
+                        right: 30px;
+                        width: 60px;
+                        height: 60px;
+                        background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
+                        border-radius: 50%;
+                        border: 2px solid #b8941f;
+                        color: #0a0a0a;
+                        font-size: 1.5rem;
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 1000;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.3);
+                        opacity: 0;
+                        visibility: hidden;
+                        transform: translateY(20px);
+                    }
+                    .scroll-to-top.visible {
+                        opacity: 1;
+                        visibility: visible;
+                        transform: translateY(0);
+                    }
+                    .scroll-to-top:hover {
+                        transform: translateY(-5px) scale(1.1);
+                        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(212, 175, 55, 0.4);
+                        border-color: #d4af37;
+                    }
+                    @keyframes bounce {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-10px); }
+                    }
+                    .scroll-to-top.pulse {
+                        animation: bounce 1s ease-in-out 3;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Show/hide button
+            window.addEventListener('scroll', () => {
+                if (window.pageYOffset > 300) {
+                    scrollBtn.classList.add('visible');
+                } else {
+                    scrollBtn.classList.remove('visible');
+                }
+            });
+
+            // Scroll to top functionality
+            scrollBtn.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+                scrollBtn.classList.add('pulse');
+                setTimeout(() => scrollBtn.classList.remove('pulse'), 3000);
+            });
+        })();
