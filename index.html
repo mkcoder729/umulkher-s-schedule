@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Umulkher's Daily Schedule</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- EmailJS Library -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>
+        // Initialize EmailJS with your credentials
+        (function(){
+            emailjs.init("jcttjV8Qn420Tryix");
+        })();
+    </script>
+        <!-- Add this in your HTML head section -->
+            <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <!-- Authentication Overlay -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <i class="fas fa-star-and-crescent"></i>
+            </div>
+            <h1 class="auth-title">Umulkher's Daily Schedule</h1>
+            <p class="auth-subtitle">Secure access to your personalized daily planner and activity tracker</p>
+
+            <div class="auth-input-group">
+                <label class="auth-label" for="username">
+                    <i class="fas fa-user"></i> Username
+                </label>
+                <input type="text" id="username" class="auth-input" placeholder="Enter your username">
+            </div>
+
+            <div class="auth-input-group">
+                <label class="auth-label" for="password">
+                    <i class="fas fa-lock"></i> Password
+                </label>
+                <input type="password" id="password" class="auth-input" placeholder="Enter your password">
+            </div>
+
+            <button class="auth-btn" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i> Access Schedule
+            </button>
+
+            <div class="auth-error" id="authError"></div>
+        </div>
+    </div>
+
+    <!-- Main Application (hidden until authenticated) -->
+    <div id="appContainer" style="display: none;">
+        <!-- Header -->
+        <header>
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo" id="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-star-and-crescent"></i>
+                        </div>
+                        <div class="logo-text">
+                            <h1>Umulkher's Daily Schedule</h1>
+                            <p>Personalized Planner & Activity Tracker</p>
+                        </div>
+                    </div>
+
+                    <div class="header-controls">
+                        <div class="time-display">
+                            <div class="current-time" id="currentTime">00:00:00</div>
+                            <div class="current-date" id="currentDate">
+                                <i class="fas fa-calendar"></i> Monday, January 1, 2024
+                            </div>
+                        </div>
+
+                        <button class="header-btn" id="calendarBtn">
+                            <i class="fas fa-calendar-alt"></i> Calendar
+                        </button>
+
+                        <button class="header-btn" id="pomodoroBtn">
+                            <i class="fas fa-clock"></i> Pomodoro
+                        </button>
+
+                        <button class="header-btn" id="voiceBtn">
+                            <i class="fas fa-microphone"></i> Voice
+                        </button>
+
+                        <div class="user-info">
+                            <i class="fas fa-user-circle user-icon"></i>
+                            <span class="user-name">Sakhi</span>
+                            <div class="user-dropdown">
+                                <a href="#" class="dropdown-item" id="profileBtn">
+                                    <i class="fas fa-user"></i> My Profile
+                                </a>
+                                <a href="#" class="dropdown-item" id="settingsBtn">
+                                    <i class="fas fa-cog"></i> Settings
+                                </a>
+                                <a href="#" class="dropdown-item" id="backupBtn">
+                                    <i class="fas fa-database"></i> Backup
+                                </a>
+                                <a href="#" class="dropdown-item" id="logoutBtn">
+                                    <i class="fas fa-sign-out-alt"></i> Log Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="container">
+            <div class="dashboard">
+                <!-- Schedule Section -->
+                <div class="schedule-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-calendar-day"></i>
+                            <span id="scheduleDay">Today's Schedule</span>
+                        </h2>
+
+                        <div class="day-navigation">
+                            <button class="day-btn" data-day="0">Sun</button>
+                            <button class="day-btn" data-day="1">Mon</button>
+                            <button class="day-btn" data-day="2">Tue</button>
+                            <button class="day-btn" data-day="3">Wed</button>
+                            <button class="day-btn active" data-day="4">Thu</button>
+                            <button class="day-btn" data-day="5">Fri</button>
+                            <button class="day-btn" data-day="6">Sat</button>
+                        </div>
+                    </div>
+
+                    <div class="timeline" id="scheduleTimeline">
+                        <!-- Schedule items will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <!-- Prayer Times -->
+                    <div class="sidebar-card prayer-times">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-mosque"></i>
+                                Prayer Times
+                            </h3>
+                            <button class="header-btn" id="locationBtn" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-location-dot"></i> Auto-detect
+                            </button>
+                        </div>
+
+                        <div id="prayerTimesContainer">
+                            <!-- Prayer times will be dynamically generated -->
+                        </div>
+
+                        <div class="current-prayer" id="currentPrayer">
+                            <i class="fas fa-clock"></i>
+                            <span>Next prayer: Fajr at 5:30 AM</span>
+                        </div>
+                    </div>
+
+                    <!-- Calendar View -->
+                    <div class="sidebar-card calendar-section" id="calendarWidget">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-calendar-alt"></i>
+                                Calendar
+                            </h3>
+                            <div class="calendar-nav">
+                                <button class="calendar-nav-btn" id="prevMonth">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <button class="calendar-nav-btn" id="nextMonth">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="calendar-month" id="currentMonth">March 2024</div>
+
+                        <div class="calendar-grid" id="calendarGrid">
+                            <!-- Calendar days will be dynamically generated -->
+                        </div>
+
+                        <div class="calendar-events" id="calendarEvents">
+                            <!-- Today's events will be shown here -->
+                        </div>
+                    </div>
+
+                    <!-- Weather Widget -->
+                    <div class="sidebar-card weather-section">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-cloud-sun"></i>
+                                Weather
+                            </h3>
+                            <button class="header-btn" id="refreshWeather" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+
+                        <div class="weather-current">
+                            <div class="weather-icon">
+                                <i class="fas fa-sun" id="weatherIcon"></i>
+                            </div>
+                            <div class="weather-details">
+                                <div class="weather-temp" id="weatherTemp">24°C</div>
+                                <div class="weather-condition" id="weatherCondition">Sunny</div>
+                                <div class="weather-location">
+                                    <i class="fas fa-location-dot"></i>
+                                    <span id="weatherLocation">Kitale, KE</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="weather-forecast" id="weatherForecast">
+                            <!-- Weather forecast will be dynamically generated -->
+                        </div>
+                    </div>
+
+                    <!-- Notes/Journal -->
+                    <div class="sidebar-card notes-section">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-book"></i>
+                                Notes & Journal
+                            </h3>
+                            <button class="header-btn" id="newNoteBtn" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-plus"></i> New
+                            </button>
+                        </div>
+
+                        <div class="notes-list" id="notesList">
+                            <!-- Notes will be dynamically generated -->
+                        </div>
+
+                        <div class="notes-form" id="notesForm" style="display: none;">
+                            <div class="notes-input-group">
+                                <input type="text" class="notes-input" id="noteTitle" placeholder="Note Title">
+                            </div>
+                            <div class="notes-input-group">
+                                <textarea class="notes-textarea" id="noteContent" placeholder="Write your note here..."></textarea>
+                            </div>
+                            <div class="notes-buttons">
+                                <button class="notes-btn" id="saveNoteBtn">
+                                    <i class="fas fa-save"></i> Save Note
+                                </button>
+                                <button class="notes-btn" id="cancelNoteBtn" style="margin-top: 10px; background: rgba(255,255,255,0.05);">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievements -->
+                    <div class="sidebar-card achievements-section">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-trophy"></i>
+                                Achievements
+                            </h3>
+                            <span class="progress-percent" id="achievementPercent">0%</span>
+                        </div>
+
+                        <div class="achievements-grid" id="achievementsGrid">
+                            <!-- Achievements will be dynamically generated -->
+                        </div>
+
+                        <div class="achievements-progress">
+                            <div class="achievements-stats">
+                                <span id="earnedAchievements">0 earned</span>
+                                <span id="totalAchievements">0 total</span>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- File Upload -->
+                    <div class="sidebar-card files-section">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-file-upload"></i>
+                                Study Materials
+                            </h3>
+                            <button class="header-btn" id="uploadBtn" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="upload-text">Drag & drop files here or click to browse</div>
+                            <input type="file" id="fileInput" multiple style="display: none;">
+                        </div>
+
+                        <div class="files-list" id="filesList">
+                            <!-- Files will be dynamically generated -->
+                        </div>
+                    </div>
+
+                    <!-- Habit Tracker -->
+                    <div class="sidebar-card habits-section">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-line"></i>
+                                Habit Tracker
+                            </h3>
+                            <button class="header-btn" id="addHabitBtn" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+
+                        <div class="habits-list" id="habitsList">
+                            <!-- Habits will be dynamically generated -->
+                        </div>
+
+                        <div class="habit-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="currentStreak">0</div>
+                                <div class="stat-label">Current Streak</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="habitsDone">0</div>
+                                <div class="stat-label">Done Today</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="successRate">0%</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quran Tracker -->
+                    <div class="sidebar-card quran-section">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-quran"></i>
+                                Quran Progress
+                            </h3>
+                            <span class="progress-percent" id="quranPercent">0%</span>
+                        </div>
+
+                        <div class="quran-progress">
+                            <div class="quran-info">
+                                <div class="quran-current">Currently: Surah Al-Fatihah</div>
+                                <div class="quran-total">Page 1 of 604</div>
+                            </div>
+                            <div class="quran-bar">
+                                <div class="quran-fill" id="quranFill"></div>
+                            </div>
+                            <div class="quran-controls">
+                                <button class="quran-btn" id="quranPrev">
+                                    <i class="fas fa-arrow-left"></i> Previous
+                                </button>
+                                <button class="quran-btn" id="quranNext">
+                                    Next <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="quran-history" id="quranHistory">
+                            <!-- Reading history will be dynamically generated -->
+                        </div>
+                    </div>
+
+                    <!-- Progress Tracker -->
+                    <div class="sidebar-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-line"></i>
+                                Day Progress
+                            </h3>
+                            <span class="progress-percent" id="progressPercent">0%</span>
+                        </div>
+
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="progress-stats">
+                                <span id="completedTasks">0 completed</span>
+                                <span id="remainingTasks">0 remaining</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat with Khisa -->
+                    <div class="sidebar-card chat-section">
+                        <h3 class="card-title">
+                            <i class="fas fa-comments"></i>
+                            Connect with Khisa
+                        </h3>
+
+                        <div class="chat-message">
+                            <div class="chat-header">
+                                <div class="chat-avatar">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div class="chat-info">
+                                    <h4>Khisa</h4>
+                                    <p>
+                                        <span class="online-dot"></span>
+                                        Online • Ready to chat
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="chat-content">
+                                "Hello Umulkher! How's your schedule going today? Remember to take breaks and stay hydrated. I'm here if you need anything!"
+                            </div>
+
+                            <div class="chat-actions">
+                                <button class="chat-btn" id="chatRequestBtn">
+                                    <i class="fas fa-comment-dots"></i>
+                                    Request Chat
+                                </button>
+                                <button class="chat-btn" id="callRequestBtn">
+                                    <i class="fas fa-phone-alt"></i>
+                                    Request Call
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="sidebar-card">
+                        <h3 class="card-title">
+                            <i class="fas fa-bolt"></i>
+                            Quick Actions
+                        </h3>
+
+                        <div class="quick-actions">
+                            <button class="action-btn" id="exportBtn">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>Export PDF</span>
+                            </button>
+                            <button class="action-btn" id="printBtn">
+                                <i class="fas fa-print"></i>
+                                <span>Print Schedule</span>
+                            </button>
+                            <button class="action-btn" id="reminderBtn">
+                                <i class="fas fa-bell"></i>
+                                <span>Set Reminder</span>
+                            </button>
+                            <button class="action-btn" id="statsBtn">
+                                <i class="fas fa-chart-bar"></i>
+                                <span>View Stats</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-logo">
+                        <div class="footer-logo-icon">
+                            <i class="fas fa-star-and-crescent"></i>
+                        </div>
+                        <div class="footer-logo-text">
+                            <h3>Umulkher's Daily Schedule</h3>
+                            <p>Organized Daily Planner System</p>
+                        </div>
+                    </div>
+
+                    <div class="footer-developer">
+                        <div class="developer-text">Developed with <i class="fas fa-heart heart-icon"></i> by</div>
+                        <div class="developer-name">Mukoya Khisa</div>
+                    </div>
+
+                    <div class="footer-links">
+                        <a href="#" class="footer-link" id="aboutLink">
+                            <i class="fas fa-info-circle"></i> About This App
+                        </a>
+                        <a href="#" class="footer-link" id="helpLink">
+                            <i class="fas fa-question-circle"></i> Help & Support
+                        </a>
+                        <a href="#" class="footer-link" id="privacyLink">
+                            <i class="fas fa-shield-alt"></i> Privacy & Security
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-copyright">
+                    &copy; <span id="currentYear"></span> Umulkher's Daily Schedule. All rights reserved. | Email Updates: sir.mukoyakhisa@gmail.com
+                </div>
+            </div>
+        </footer>
+
+        <!-- Notification -->
+        <div class="notification" id="notification">
+            <div class="notification-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title" id="notificationTitle">Notification</div>
+                <div class="notification-message" id="notificationMessage">Welcome to your schedule!</div>
+            </div>
+            <button class="notification-close" id="closeNotification">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Pomodoro Timer -->
+        <div class="pomodoro-timer" id="pomodoroTimer">
+            <div class="pomodoro-header">
+                <h3 class="pomodoro-title">
+                    <i class="fas fa-clock"></i>
+                    Pomodoro Timer
+                </h3>
+                <button class="pomodoro-close" id="closePomodoro">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="pomodoro-time" id="pomodoroTime">25:00</div>
+            <div class="pomodoro-phase" id="pomodoroPhase">Focus Time</div>
+            <div class="pomodoro-controls">
+                <button class="pomodoro-btn" id="startPomodoro">
+                    <i class="fas fa-play"></i> Start
+                </button>
+                <button class="pomodoro-btn" id="pausePomodoro">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button class="pomodoro-btn" id="resetPomodoro">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+            <div class="pomodoro-stats">
+                <span>Pomodoros: <span id="pomodoroCount">0</span></span>
+                <span>Breaks: <span id="breakCount">0</span></span>
+            </div>
+        </div>
+
+        <!-- Voice Command Indicator -->
+        <div class="voice-indicator" id="voiceIndicator">
+            <div class="voice-header">
+                <h3 class="voice-title">
+                    <i class="fas fa-microphone"></i>
+                    Voice Commands
+                </h3>
+                <button class="voice-close" id="closeVoice">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="voice-status" id="voiceStatus">Ready for commands</div>
+            <div class="voice-command" id="voiceCommand">
+                Say a command...
+            </div>
+            <div class="voice-commands-list">
+                <h4>Available Commands:</h4>
+                <div class="voice-command-item">
+                    <span class="voice-command-keyword">"next task"</span>
+                    <span>Go to next task</span>
+                </div>
+                <div class="voice-command-item">
+                    <span class="voice-command-keyword">"mark done"</span>
+                    <span>Mark current task complete</span>
+                </div>
+                <div class="voice-command-item">
+                    <span class="voice-command-keyword">"prayer time"</span>
+                    <span>Show next prayer</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reschedule Modal -->
+        <div class="reschedule-modal" id="rescheduleModal">
+            <div class="reschedule-content">
+                <div class="reschedule-header">
+                    <h3 class="reschedule-title">
+                        <i class="fas fa-clock"></i>
+                        Reschedule Task
+                    </h3>
+                    <button class="reschedule-close" id="closeReschedule">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="reschedule-form">
+                    <div class="reschedule-form-group">
+                        <label class="reschedule-label">Task to Reschedule</label>
+                        <input type="text" class="reschedule-input" id="rescheduleTask" readonly>
+                    </div>
+                    <div class="reschedule-form-group">
+                        <label class="reschedule-label">New Date</label>
+                        <input type="date" class="reschedule-input" id="rescheduleDate">
+                    </div>
+                    <div class="reschedule-form-group">
+                        <label class="reschedule-label">New Time</label>
+                        <input type="time" class="reschedule-input" id="rescheduleTime">
+                    </div>
+                    <div class="reschedule-form-group">
+                        <label class="reschedule-label">Reason for Rescheduling</label>
+                        <select class="reschedule-select" id="rescheduleReason">
+                            <option value="conflict">Schedule Conflict</option>
+                            <option value="emergency">Emergency</option>
+                            <option value="sick">Feeling Unwell</option>
+                            <option value="other">Other Reason</option>
+                        </select>
+                    </div>
+                    <div class="reschedule-buttons">
+                        <button class="reschedule-btn" id="confirmReschedule">
+                            <i class="fas fa-check"></i> Confirm Reschedule
+                        </button>
+                        <button class="reschedule-btn cancel" id="cancelReschedule">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup/Restore Modal -->
+        <div class="modal-overlay" id="backupModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fas fa-database"></i>
+                        Backup & Restore
+                    </h3>
+                    <button class="modal-close" id="closeBackupModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="backup-section" style="background: transparent; padding: 0; box-shadow: none;">
+                        <div class="backup-options">
+                            <button class="backup-btn" id="backupDataBtn">
+                                <i class="fas fa-download"></i>
+                                <span>Backup All Data</span>
+                            </button>
+                            <button class="backup-btn" id="restoreDataBtn">
+                                <i class="fas fa-upload"></i>
+                                <span>Restore From Backup</span>
+                            </button>
+                            <button class="backup-btn" id="exportDataBtn">
+                                <i class="fas fa-file-export"></i>
+                                <span>Export as JSON</span>
+                            </button>
+                            <button class="backup-btn" id="importDataBtn">
+                                <i class="fas fa-file-import"></i>
+                                <span>Import JSON</span>
+                            </button>
+                        </div>
+                        <div class="backup-info">
+                            Last backup: <span id="lastBackupDate">Never</span><br>
+                            Data size: <span id="dataSize">0 KB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Add this in your HTML head section -->
+        <script type="module" src="main.js"></script>
+</body>
+</html>
