@@ -187,36 +187,165 @@
                         </div>
                     </div>
 
-                    <!-- Weather Widget -->
-                    <div class="sidebar-card weather-section">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-cloud-sun"></i>
-                                Weather
-                            </h3>
-                            <button class="header-btn" id="refreshWeather" style="padding: 8px 15px; font-size: 0.9rem;">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
+            <!-- Weather Widget -->
+            <div class="sidebar-card weather-section">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-cloud-sun"></i>
+                        Weather - Kitale
+                    </h3>
+                    <div class="weather-controls">
+                        <button class="header-btn weather-refresh" id="refreshWeather" title="Refresh weather data">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <div class="weather-update-status" id="weatherUpdateStatus">
+                            <i class="fas fa-check-circle"></i> Updated
                         </div>
+                    </div>
+                </div>
 
-                        <div class="weather-current">
-                            <div class="weather-icon">
+                <!-- Loading Indicator -->
+                <div class="weather-loading" id="weatherLoading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading weather data...</div>
+                </div>
+
+                <!-- Error Display -->
+                <div class="weather-error" id="weatherError" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div class="error-message" id="weatherErrorMessage">Weather data could not be loaded</div>
+                    <button class="error-retry" id="weatherErrorRetry">Retry</button>
+                </div>
+
+                <!-- Weather Content (shown when not loading/error) -->
+                <div class="weather-content" id="weatherContent">
+                    <!-- Current Weather Display -->
+                    <div class="weather-current">
+                        <div class="weather-icon-container">
+                            <div class="weather-icon" id="weatherIconContainer">
                                 <i class="fas fa-sun" id="weatherIcon"></i>
                             </div>
-                            <div class="weather-details">
+                            <div class="weather-animation" id="weatherAnimation"></div>
+                        </div>
+                        <div class="weather-details">
+                            <div class="weather-temp-container">
                                 <div class="weather-temp" id="weatherTemp">24°C</div>
+                                <div class="weather-feels-like" id="weatherFeelsLike">Feels like 25°C</div>
+                            </div>
+                            <div class="weather-condition-container">
                                 <div class="weather-condition" id="weatherCondition">Sunny</div>
+                                <div class="weather-humidity" id="weatherHumidity">
+                                    <i class="fas fa-tint"></i> 65%
+                                </div>
+                                <div class="weather-wind" id="weatherWind">
+                                    <i class="fas fa-wind"></i> 12 km/h
+                                </div>
+                            </div>
+                            <div class="weather-location-container">
                                 <div class="weather-location">
                                     <i class="fas fa-location-dot"></i>
                                     <span id="weatherLocation">Kitale, KE</span>
                                 </div>
+                                <div class="weather-time" id="weatherTime">
+                                    <i class="fas fa-clock"></i> Updated: <span id="weatherUpdateTime">Just now</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="weather-forecast" id="weatherForecast">
-                            <!-- Weather forecast will be dynamically generated -->
+                    <!-- Weather Details Grid -->
+                    <div class="weather-details-grid" id="weatherDetailsGrid">
+                        <div class="weather-detail-item">
+                            <div class="weather-detail-icon">
+                                <i class="fas fa-temperature-high"></i>
+                            </div>
+                            <div class="weather-detail-info">
+                                <div class="weather-detail-label">High / Low</div>
+                                <div class="weather-detail-value" id="weatherTempRange">26° / 18°</div>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="weather-detail-icon">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="weather-detail-info">
+                                <div class="weather-detail-label">Visibility</div>
+                                <div class="weather-detail-value" id="weatherVisibility">10 km</div>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="weather-detail-icon">
+                                <i class="fas fa-cloud-rain"></i>
+                            </div>
+                            <div class="weather-detail-info">
+                                <div class="weather-detail-label">Rain Chance</div>
+                                <div class="weather-detail-value" id="weatherRainChance">10%</div>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="weather-detail-icon">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                            <div class="weather-detail-info">
+                                <div class="weather-detail-label">Sunrise</div>
+                                <div class="weather-detail-value" id="weatherSunrise">6:30 AM</div>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="weather-detail-icon">
+                                <i class="fas fa-moon"></i>
+                            </div>
+                            <div class="weather-detail-info">
+                                <div class="weather-detail-label">Sunset</div>
+                                <div class="weather-detail-value" id="weatherSunset">6:45 PM</div>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="weather-detail-icon">
+                                <i class="fas fa-compress-alt"></i>
+                            </div>
+                            <div class="weather-detail-info">
+                                <div class="weather-detail-label">Pressure</div>
+                                <div class="weather-detail-value" id="weatherPressure">1013 hPa</div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- 3-Day Forecast -->
+                    <div class="weather-forecast-header">
+                        <h4><i class="fas fa-calendar-alt"></i> 3-Day Forecast</h4>
+                    </div>
+                    <div class="weather-forecast" id="weatherForecast">
+                        <!-- Forecast will be dynamically generated -->
+                        <div class="forecast-placeholder">
+                            <div class="forecast-day">
+                                <div class="forecast-date">Today</div>
+                                <div class="forecast-icon"><i class="fas fa-sun"></i></div>
+                                <div class="forecast-temp">24°C</div>
+                            </div>
+                            <div class="forecast-day">
+                                <div class="forecast-date">Tomorrow</div>
+                                <div class="forecast-icon"><i class="fas fa-cloud-sun"></i></div>
+                                <div class="forecast-temp">25°C</div>
+                            </div>
+                            <div class="forecast-day">
+                                <div class="forecast-date">Mon</div>
+                                <div class="forecast-icon"><i class="fas fa-cloud"></i></div>
+                                <div class="forecast-temp">23°C</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weather Alerts -->
+                    <div class="weather-alerts" id="weatherAlerts" style="display: none;">
+                        <div class="weather-alert-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Weather Alert</span>
+                        </div>
+                        <div class="weather-alert-message" id="weatherAlertMessage"></div>
+                    </div>
+                </div>
+            </div>
 
                     <!-- Notes/Journal -->
                     <div class="sidebar-card notes-section">
@@ -333,39 +462,38 @@
                         </div>
                     </div>
 
-                    <!-- Quran Tracker -->
-                    <div class="sidebar-card quran-section">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-quran"></i>
-                                Quran Progress
-                            </h3>
-                            <span class="progress-percent" id="quranPercent">0%</span>
-                        </div>
+                <!-- Quran Tracker -->
+                <div class="sidebar-card quran-section">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-quran"></i>
+                            Quran Progress
+                        </h3>
+                        <span class="progress-percent" id="quranPercent">0%</span>
+                    </div>
 
-                        <div class="quran-progress">
-                            <div class="quran-info">
-                                <div class="quran-current">Currently: Surah Al-Fatihah</div>
-                                <div class="quran-total">Page 1 of 604</div>
-                            </div>
-                            <div class="quran-bar">
-                                <div class="quran-fill" id="quranFill"></div>
-                            </div>
-                            <div class="quran-controls">
-                                <button class="quran-btn" id="quranPrev">
-                                    <i class="fas fa-arrow-left"></i> Previous
-                                </button>
-                                <button class="quran-btn" id="quranNext">
-                                    Next <i class="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
+                    <div class="quran-progress">
+                        <div class="quran-info">
+                            <div class="quran-current">Currently: Surah Al-Fatihah</div>
+                            <div class="quran-total">Page 1 of 604</div>
                         </div>
-
-                        <div class="quran-history" id="quranHistory">
-                            <!-- Reading history will be dynamically generated -->
+                        <div class="quran-bar">
+                            <div class="quran-fill" id="quranFill" style="width: 0%"></div>
+                        </div>
+                        <div class="quran-controls">
+                            <button class="quran-btn" id="quranPrev" onclick="goToPreviousPage()">
+                                <i class="fas fa-arrow-left"></i> Previous
+                            </button>
+                            <button class="quran-btn" id="quranNext" onclick="goToNextPage()">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </button>
                         </div>
                     </div>
 
+                    <div class="quran-history" id="quranHistory">
+                        <!-- Reading history will be dynamically generated -->
+                    </div>
+                </div>
                     <!-- Progress Tracker -->
                     <div class="sidebar-card">
                         <div class="card-header">

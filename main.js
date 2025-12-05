@@ -1,9 +1,9 @@
         // ====== EMAILJS CONFIGURATION ======
-        // You need to sign up at https://www.emailjs.com and get your credentials
+        // Updated EmailJS credentials
         const EMAILJS_CONFIG = {
-            service_id: 'service_yap2gp7',
-            template_id: 'template_vqubt3h',
-            user_id: 'jcttjV8Qn420Tryix'
+            service_id: 'service_mr3mdv9',
+            template_id: 'template_xvz7f39',
+            user_id: 'x786efXtt7QA20BJv'
         };
 
         const DEVELOPER_EMAIL = 'lemanuelneuro@gmail.com';
@@ -475,13 +475,15 @@
 
                 const templateParams = {
                     to_email: 'lemanuelneuro@gmail.com',
+                    from_name: 'Umulkher\'s Schedule', // This MUST match your template field name
                     subject: icon + ' ' + subject,
                     icon: icon,
                     message: message,
                     date: new Date().toLocaleDateString(),
                     time: new Date().toLocaleTimeString(),
                     activity: activity || type,
-                    type_class: typeClass
+                    type_class: typeClass,
+                    reply_to: 'lemanuelneuro@gmail.com'
                 };
 
                 await emailjs.send(
@@ -498,6 +500,7 @@
                 return false;
             }
         }
+
         // ====== APPLICATION INITIALIZATION ======
         function initializeApp() {
             currentDay = new Date().getDay(); // Set to current day
@@ -505,7 +508,7 @@
             renderSchedule();
             renderPrayerTimes();
             renderCalendar();
-            renderWeather();
+            renderWeather(); // Fixed weather function
             renderNotes();
             renderAchievements();
             renderFiles();
@@ -518,6 +521,9 @@
             animatePageElements();
             checkForKhisaMessages();
             startMissedTasksChecker();
+
+            // Start weather updates
+            startWeatherUpdates();
         }
 
         // ====== SCHEDULE MANAGEMENT ======
@@ -685,7 +691,7 @@
 
                     // Send email notification for important completed tasks
                     if (completed && (item.importance === 'high' || item.category === 'prayer')) {
-                    sendEmail('Task Completed', `Umulkher completed: "${item.activity}" at ${item.time}\nDay: ${DAYS[currentDay]}`, 'completed', item.activity);
+                        sendEmail('Task Completed', `Umulkher completed: "${item.activity}" at ${item.time}\nDay: ${DAYS[currentDay]}`, 'completed', item.activity);
                     }
 
                     if (completed) {
@@ -715,7 +721,7 @@
                     updateProgress();
 
                     if (item.skipped && item.importance === 'high') {
-                    sendEmail('Task Skipped', `Umulkher skipped: "${item.activity}" scheduled for ${item.time}\nDay: ${DAYS[currentDay]}`, 'skipped', item.activity);
+                        sendEmail('Task Skipped', `Umulkher skipped: "${item.activity}" scheduled for ${item.time}\nDay: ${DAYS[currentDay]}`, 'skipped', item.activity);
                     }
 
                     showNotification('Task Updated', `"${item.activity}" marked as ${item.skipped ? 'skipped' : 'unskipped'}.`);
@@ -903,17 +909,41 @@
         // ====== WEATHER INTEGRATION ======
         async function renderWeather() {
             try {
+                console.log('🌤️ renderWeather called - Fetching weather data...');
+
+                // Show loading state
+                const loadingEl = document.getElementById('weatherLoading');
+                const errorEl = document.getElementById('weatherError');
+                const forecastEl = document.getElementById('weatherForecast');
+
+                if (loadingEl) loadingEl.style.display = 'block';
+                if (errorEl) errorEl.style.display = 'none';
+                if (forecastEl) forecastEl.innerHTML = '<div style="text-align: center; color: var(--text-gray); padding: 20px;">Loading forecast...</div>';
+
+                // Update status
+                const updateTimeEl = document.getElementById('weatherUpdateTime');
+                if (updateTimeEl) {
+                    updateTimeEl.textContent = 'Just now...';
+                }
+
                 // Using OpenWeatherMap API (free tier)
                 const API_KEY = 'f2b3b0f43a036f04e75e543b0f5d9060';
                 const city = 'Kitale';
+                const country = 'KE';
 
                 // Validate API key format
                 if (!API_KEY || API_KEY === 'YOUR_OPENWEATHER_API_KEY' || API_KEY.length < 20) {
                     throw new Error('Invalid API key format');
                 }
 
-                // Fetch current weather
-                const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${API_KEY}`);
+                // Add timestamp to prevent caching
+                const timestamp = new Date().getTime();
+
+                // Fetch current weather with cache busting
+                const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city},${country}&units=metric&appid=${API_KEY}&_=${timestamp}`;
+                console.log('🌤️ Fetching weather from:', weatherUrl);
+
+                const weatherResponse = await fetch(weatherUrl);
 
                 if (!weatherResponse.ok) {
                     if (weatherResponse.status === 401) {
@@ -926,41 +956,85 @@
                 }
 
                 const weatherData = await weatherResponse.json();
+                console.log('🌤️ Weather data received:', weatherData);
 
                 // Update current weather display
                 document.getElementById('weatherTemp').textContent = `${Math.round(weatherData.main.temp)}°C`;
                 document.getElementById('weatherCondition').textContent = weatherData.weather[0].main;
                 document.getElementById('weatherLocation').textContent = `${weatherData.name}, ${weatherData.sys.country}`;
 
+                // Update additional weather details
+                document.getElementById('weatherFeelsLike').textContent = `Feels like ${Math.round(weatherData.main.feels_like)}°C`;
+                document.getElementById('weatherHumidity').innerHTML = `<i class="fas fa-tint"></i> ${weatherData.main.humidity}%`;
+                document.getElementById('weatherWind').innerHTML = `<i class="fas fa-wind"></i> ${Math.round(weatherData.wind.speed * 3.6)} km/h`;
+                document.getElementById('weatherTempRange').textContent = `${Math.round(weatherData.main.temp_max)}° / ${Math.round(weatherData.main.temp_min)}°`;
+                document.getElementById('weatherVisibility').textContent = `${(weatherData.visibility / 1000).toFixed(1)} km`;
+                document.getElementById('weatherPressure').textContent = `${weatherData.main.pressure} hPa`;
+
+                // Convert sunrise/sunset times
+                const sunriseTime = new Date(weatherData.sys.sunrise * 1000);
+                const sunsetTime = new Date(weatherData.sys.sunset * 1000);
+                document.getElementById('weatherSunrise').textContent = sunriseTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('weatherSunset').textContent = sunsetTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
                 // Set appropriate icon
                 const icon = getWeatherIcon(weatherData.weather[0].icon);
                 document.getElementById('weatherIcon').className = `fas fa-${icon}`;
 
-                // Fetch 5-day forecast (free API returns 3-hour intervals for 5 days)
-                const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${API_KEY}`);
+                // Fetch 5-day forecast with cache busting
+                const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city},${country}&units=metric&appid=${API_KEY}&_=${timestamp}`;
+                console.log('🌤️ Fetching forecast from:', forecastUrl);
+
+                const forecastResponse = await fetch(forecastUrl);
 
                 if (!forecastResponse.ok) {
                     console.warn('Forecast API error, using current weather data only');
-                    // Still show current weather even if forecast fails
                     renderLimitedForecast(weatherData);
                 } else {
                     const forecastData = await forecastResponse.json();
                     renderWeatherForecast(forecastData.list);
                 }
 
+                // Update time and status
+                const now = new Date();
+                if (updateTimeEl) {
+                    updateTimeEl.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                }
+
+                const statusEl = document.getElementById('weatherUpdateStatus');
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Updated ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                }
+
+                // Hide loading
+                if (loadingEl) loadingEl.style.display = 'none';
+
                 // Log success for debugging
-                console.log(`Weather data loaded for ${weatherData.name}: ${weatherData.main.temp}°C, ${weatherData.weather[0].main}`);
+                console.log(`✅ Weather data loaded for ${weatherData.name}: ${weatherData.main.temp}°C, ${weatherData.weather[0].main}`);
 
             } catch (error) {
-                console.error('Weather API error:', error.message);
+                console.error('❌ Weather API error:', error.message);
 
-                // Show error to user in a friendly way
-                document.getElementById('weatherCondition').textContent = 'Weather Update';
+                // Hide loading
+                const loadingEl = document.getElementById('weatherLoading');
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                // Show error
+                const errorEl = document.getElementById('weatherError');
+                const errorMessageEl = document.getElementById('weatherErrorMessage');
+                if (errorEl && errorMessageEl) {
+                    errorEl.style.display = 'block';
+                    errorMessageEl.textContent = error.message;
+                }
+
+                // Show error to user in a friendly way in the main display
+                document.getElementById('weatherCondition').textContent = 'Weather Error';
                 document.getElementById('weatherLocation').innerHTML =
                     `<i class="fas fa-exclamation-triangle" style="color: var(--warning-color);"></i> ${error.message.split(':')[0]}`;
 
                 // Fallback to mock data with delay
                 setTimeout(() => {
+                    console.log('🌤️ Falling back to mock weather data');
                     renderMockWeather();
                     showNotification('Weather Update', 'Using local weather data for now. Real weather will resume when available.');
                 }, 1000);
@@ -968,6 +1042,8 @@
         }
 
         function renderMockWeather() {
+            console.log('🌤️ Rendering mock weather data');
+
             // More realistic mock data for Kitale
             const kitaleMockData = {
                 temp: Math.floor(Math.random() * 5) + 20, // Random temp between 20-25°C
@@ -984,20 +1060,47 @@
             document.getElementById('weatherLocation').textContent = 'Kitale, KE';
             document.getElementById('weatherIcon').className = `fas fa-${getIconFromCondition(kitaleMockData.conditions)}`;
 
+            // Update mock details
+            document.getElementById('weatherFeelsLike').textContent = `Feels like ${kitaleMockData.temp + 1}°C`;
+            document.getElementById('weatherHumidity').innerHTML = `<i class="fas fa-tint"></i> ${Math.floor(Math.random() * 30) + 50}%`;
+            document.getElementById('weatherWind').innerHTML = `<i class="fas fa-wind"></i> ${Math.floor(Math.random() * 10) + 5} km/h`;
+            document.getElementById('weatherTempRange').textContent = `${kitaleMockData.temp + 2}° / ${kitaleMockData.temp - 2}°`;
+            document.getElementById('weatherVisibility').textContent = `${Math.floor(Math.random() * 5) + 8} km`;
+            document.getElementById('weatherPressure').textContent = `${Math.floor(Math.random() * 20) + 1000} hPa`;
+
+            // Mock sunrise/sunset
+            document.getElementById('weatherSunrise').textContent = '6:30 AM';
+            document.getElementById('weatherSunset').textContent = '6:45 PM';
+
+            // Hide loading and error
+            const loadingEl = document.getElementById('weatherLoading');
+            const errorEl = document.getElementById('weatherError');
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (errorEl) errorEl.style.display = 'none';
+
             // Mock forecast
             const forecastContainer = document.getElementById('weatherForecast');
-            forecastContainer.innerHTML = '';
+            if (forecastContainer) {
+                forecastContainer.innerHTML = '';
 
-            kitaleMockData.forecasts.forEach(day => {
-                const forecastElement = document.createElement('div');
-                forecastElement.className = 'forecast-day';
-                forecastElement.innerHTML = `
-                    <div class="forecast-date">${day.day}</div>
-                    <div class="forecast-icon"><i class="fas fa-${day.icon}"></i></div>
-                    <div class="forecast-temp">${day.temp}°C</div>
-                `;
-                forecastContainer.appendChild(forecastElement);
-            });
+                kitaleMockData.forecasts.forEach(day => {
+                    const forecastElement = document.createElement('div');
+                    forecastElement.className = 'forecast-day';
+                    forecastElement.innerHTML = `
+                        <div class="forecast-date">${day.day}</div>
+                        <div class="forecast-icon"><i class="fas fa-${day.icon}"></i></div>
+                        <div class="forecast-temp">${day.temp}°C</div>
+                    `;
+                    forecastContainer.appendChild(forecastElement);
+                });
+            }
+
+            // Update status
+            const now = new Date();
+            const statusEl = document.getElementById('weatherUpdateStatus');
+            if (statusEl) {
+                statusEl.innerHTML = `<i class="fas fa-info-circle"></i> Mock data ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            }
         }
 
         function getDayAfterTomorrow() {
@@ -1024,7 +1127,10 @@
 
         function renderWeatherForecast(forecastList) {
             const forecastContainer = document.getElementById('weatherForecast');
+            if (!forecastContainer) return;
+
             forecastContainer.innerHTML = '';
+            console.log('🌤️ Rendering forecast with', forecastList.length, 'entries');
 
             // Get one forecast per day (at 12:00 PM for consistency)
             const dailyForecasts = {};
@@ -1046,8 +1152,11 @@
                 .map(([dayName, forecast]) => ({
                     day: dayName,
                     temp: Math.round(forecast.main.temp),
-                    icon: getWeatherIcon(forecast.weather[0].icon)
+                    icon: getWeatherIcon(forecast.weather[0].icon),
+                    condition: forecast.weather[0].main
                 }));
+
+            console.log('🌤️ Processed forecasts:', forecastArray);
 
             forecastArray.forEach(day => {
                 const forecastElement = document.createElement('div');
@@ -1056,6 +1165,7 @@
                     <div class="forecast-date">${day.day}</div>
                     <div class="forecast-icon"><i class="fas fa-${day.icon}"></i></div>
                     <div class="forecast-temp">${day.temp}°C</div>
+                    <div class="forecast-condition">${day.condition}</div>
                 `;
                 forecastContainer.appendChild(forecastElement);
             });
@@ -1068,6 +1178,8 @@
 
         function renderLimitedForecast(currentWeather) {
             const forecastContainer = document.getElementById('weatherForecast');
+            if (!forecastContainer) return;
+
             forecastContainer.innerHTML = '';
 
             // Create simple forecast based on current weather
@@ -1490,46 +1602,124 @@
 
             if (quranData.readingHistory.length === 0) {
                 historyContainer.innerHTML = '<div style="text-align: center; color: var(--text-gray); padding: 10px;">No reading history yet.</div>';
-                return;
+            } else {
+                quranData.readingHistory.slice(0, 3).forEach(reading => {
+                    const historyElement = document.createElement('div');
+                    historyElement.className = 'history-item';
+                    historyElement.innerHTML = `
+                        <div class="history-date">${new Date(reading.date).toLocaleDateString()}</div>
+                        <div class="history-pages">${reading.pages} pages</div>
+                    `;
+                    historyContainer.appendChild(historyElement);
+                });
             }
 
-            quranData.readingHistory.slice(0, 3).forEach(reading => {
-                const historyElement = document.createElement('div');
-                historyElement.className = 'history-item';
-                historyElement.innerHTML = `
-                    <div class="history-date">${new Date(reading.date).toLocaleDateString()}</div>
-                    <div class="history-pages">${reading.pages} pages</div>
-                `;
-                historyContainer.appendChild(historyElement);
-            });
+            // FIX: Setup Quran navigation after rendering
+            setupQuranNavigation();
         }
 
-        function recordQuranReading(pages) {
-            if (pages <= 0) return;
+        // FIXED FUNCTION: Handles both forward and backward navigation properly
+        function handleQuranNavigation(pages) {
+            // Calculate new page
+            let newPage = quranData.currentPage + pages;
 
-            quranData.currentPage = Math.min(quranData.totalPages, quranData.currentPage + pages);
+            // Ensure page stays within bounds
+            newPage = Math.max(1, Math.min(quranData.totalPages, newPage));
 
-            // Add to history
-            quranData.readingHistory.unshift({
-                date: new Date().toISOString(),
-                pages: pages
-            });
+            // Calculate actual pages moved (could be different from requested if at boundaries)
+            const actualPagesMoved = newPage - quranData.currentPage;
 
-            // Keep only last 10 entries
-            quranData.readingHistory = quranData.readingHistory.slice(0, 10);
+            // Update current page
+            quranData.currentPage = newPage;
 
+            // Only add to history if moving forward (reading)
+            if (actualPagesMoved > 0) {
+                quranData.readingHistory.unshift({
+                    date: new Date().toISOString(),
+                    pages: actualPagesMoved
+                });
+
+                // Keep only last 10 entries
+                quranData.readingHistory = quranData.readingHistory.slice(0, 10);
+            }
+
+            // Update Surah name based on page (basic implementation)
+            updateSurahName();
+
+            // Save to localStorage
             localStorage.setItem('quranData', JSON.stringify(quranData));
-            renderQuranProgress();
-            checkAchievements();
 
-            // Send email notification for significant progress
-            if (pages >= 5) {
-            sendEmail('Quran Progress', `Umulkher read ${pages} pages\nCurrent page: ${quranData.currentPage}`, 'quran', 'Quran Reading');
+            // Update UI
+            renderQuranProgress();
+
+            // Check achievements
+            if (actualPagesMoved > 0) {
+                checkAchievements();
             }
 
-            showNotification('Quran Progress', `You read ${pages} pages today! Current page: ${quranData.currentPage}`);
+            // Send notifications
+            if (actualPagesMoved > 0) {
+                if (actualPagesMoved >= 5) {
+                    sendEmail('Quran Progress', `Umulkher read ${actualPagesMoved} pages\nCurrent page: ${quranData.currentPage}`, 'quran', 'Quran Reading');
+                }
+                showNotification('Quran Progress', `You read ${actualPagesMoved} page(s)! Current page: ${quranData.currentPage}`);
+            } else if (actualPagesMoved < 0) {
+                showNotification('Quran Progress', `Went back ${Math.abs(actualPagesMoved)} page(s). Current page: ${quranData.currentPage}`);
+            }
         }
 
+        // Helper function to update Surah name based on page
+        function updateSurahName() {
+            // Simplified mapping - you can expand this with actual page-to-surah mapping
+            const surahMap = {
+                1: 'Al-Fatihah',
+                2: 'Al-Baqarah',
+                3: 'Al-Baqarah',
+                4: 'Al-Baqarah',
+                5: 'Al-Baqarah',
+                6: 'Al-Baqarah',
+                7: 'Al-Baqarah',
+                8: 'Al-Baqarah',
+                9: 'Al-Baqarah',
+                10: 'Al-Baqarah',
+                // Add more mappings as needed
+            };
+
+            // Find the closest surah start page
+            let closestSurah = 'Al-Fatihah';
+            for (const [page, surah] of Object.entries(surahMap)) {
+                if (quranData.currentPage >= parseInt(page)) {
+                    closestSurah = surah;
+                }
+            }
+
+            quranData.currentSurah = closestSurah;
+        }
+
+        // Fix Quran navigation - UPDATED FUNCTION
+        function setupQuranNavigation() {
+            const quranPrev = document.getElementById('quranPrev');
+            const quranNext = document.getElementById('quranNext');
+
+            if (quranPrev) {
+                // Remove existing event listeners first
+                quranPrev.replaceWith(quranPrev.cloneNode(true));
+                const newQuranPrev = document.getElementById('quranPrev');
+                newQuranPrev.addEventListener('click', () => handleQuranNavigation(-1));
+            }
+
+            if (quranNext) {
+                // Remove existing event listeners first
+                quranNext.replaceWith(quranNext.cloneNode(true));
+                const newQuranNext = document.getElementById('quranNext');
+                newQuranNext.addEventListener('click', () => handleQuranNavigation(1));
+            }
+        }
+
+        // Keep the old recordQuranReading function for backward compatibility
+        function recordQuranReading(pages) {
+            handleQuranNavigation(pages);
+        }
         // ====== POMODORO TIMER ======
         function startPomodoro() {
             if (pomodoroState.timerInterval) {
@@ -1982,8 +2172,17 @@
                 handleLogout();
             });
 
-            // Weather refresh
-            document.getElementById('refreshWeather').addEventListener('click', renderWeather);
+        // Weather refresh with loading state
+        document.getElementById('refreshWeather').addEventListener('click', function() {
+            console.log('🔄 Refresh weather button clicked');
+            renderWeather();
+        });
+
+        // Add retry button event listener
+        document.getElementById('weatherErrorRetry')?.addEventListener('click', function() {
+            console.log('🔄 Retry weather button clicked');
+            renderWeather();
+        });
 
             // Notes
             document.getElementById('newNoteBtn').addEventListener('click', () => {
@@ -2022,14 +2221,14 @@
                 showNotification('Chat Request', 'Khisa has been notified that you want to chat. He will contact you soon!');
 
                 // Send email to Khisa
-            sendEmail('Chat Request', 'Umulkher wants to chat with you!\nTime: ' + new Date().toLocaleTimeString(), 'communication', 'Connect with Khisa');
+                sendEmail('Chat Request', 'Umulkher wants to chat with you!\nTime: ' + new Date().toLocaleTimeString(), 'communication', 'Connect with Khisa');
             });
 
             document.getElementById('callRequestBtn').addEventListener('click', () => {
                 showNotification('Call Request', 'Khisa has been notified that you want to call. He will contact you soon!');
 
                 // Send email to Khisa
-            sendEmail('Call Request', 'Umulkher wants to call you!\nTime: ' + new Date().toLocaleTimeString(), 'communication', 'Connect with Khisa');
+                sendEmail('Call Request', 'Umulkher wants to call you!\nTime: ' + new Date().toLocaleTimeString(), 'communication', 'Connect with Khisa');
             });
 
             // Quick action buttons
@@ -2485,7 +2684,6 @@
             }
         }
 
-
         // Add this at the very end of your script, before the closing </script> tag
         (function() {
             // Create button
@@ -2502,45 +2700,70 @@
                 const style = document.createElement('style');
                 style.id = 'scroll-to-top-style';
                 style.textContent = `
-                    .scroll-to-top {
-                        position: fixed;
-                        bottom: 30px;
-                        right: 30px;
-                        width: 60px;
-                        height: 60px;
-                        background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
-                        border-radius: 50%;
-                        border: 2px solid #b8941f;
-                        color: #0a0a0a;
-                        font-size: 1.5rem;
-                        cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        z-index: 1000;
-                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.3);
-                        opacity: 0;
-                        visibility: hidden;
-                        transform: translateY(20px);
-                    }
-                    .scroll-to-top.visible {
-                        opacity: 1;
-                        visibility: visible;
-                        transform: translateY(0);
-                    }
-                    .scroll-to-top:hover {
-                        transform: translateY(-5px) scale(1.1);
-                        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(212, 175, 55, 0.4);
-                        border-color: #d4af37;
-                    }
-                    @keyframes bounce {
-                        0%, 100% { transform: translateY(0); }
-                        50% { transform: translateY(-10px); }
-                    }
-                    .scroll-to-top.pulse {
-                        animation: bounce 1s ease-in-out 3;
-                    }
+                        .scroll-to-top {
+                            position: fixed;
+                            bottom: 25px;
+                            right: 25px;
+                            width: 50px;
+                            height: 50px;
+                            background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
+                            border-radius: 50%;
+                            border: 2px solid #b8941f;
+                            color: #0a0a0a;
+                            font-size: 1.2rem;
+                            cursor: pointer;
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 1000;
+                            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(212, 175, 55, 0.2);
+                            opacity: 0;
+                            visibility: hidden;
+                            transform: translateY(15px) scale(0.95);
+                        }
+
+                        .scroll-to-top.visible {
+                            opacity: 1;
+                            visibility: visible;
+                            transform: translateY(0) scale(1);
+                        }
+
+                        .scroll-to-top:hover {
+                            transform: translateY(-3px) scale(1.05);
+                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 175, 55, 0.3);
+                            border-color: #d4af37;
+                        }
+
+                        @keyframes bounce {
+                            0%, 100% { transform: translateY(0) scale(1); }
+                            50% { transform: translateY(-8px) scale(1.05); }
+                        }
+
+                        .scroll-to-top.pulse {
+                            animation: bounce 0.8s ease-in-out 2;
+                        }
+
+                        /* Mobile responsiveness */
+                        @media (max-width: 768px) {
+                            .scroll-to-top {
+                                bottom: 20px;
+                                right: 20px;
+                                width: 45px;
+                                height: 45px;
+                                font-size: 1.1rem;
+                            }
+                        }
+
+                        @media (max-width: 480px) {
+                            .scroll-to-top {
+                                bottom: 15px;
+                                right: 15px;
+                                width: 40px;
+                                height: 40px;
+                                font-size: 1rem;
+                            }
+                        }
                 `;
                 document.head.appendChild(style);
             }
@@ -2565,1065 +2788,1065 @@
             });
         })();
 
-            // ============================================================================
-           // PERFECT ONBOARDING TOUR - SMOOTH & PRODUCTION READY
-          // ============================================================================
+        // ============================================================================
+        // PERFECT ONBOARDING TOUR - SMOOTH & PRODUCTION READY
+        // ============================================================================
 
-            class OnboardingTour {
-                constructor() {
-                    this.currentStep = 0;
-                    this.isActive = false;
-                    this.steps = [];
-                    this.highlightedElement = null;
-                    this.isTransitioning = false;
-                    this.tourId = 'umulkher-tour-v1';
+        class OnboardingTour {
+            constructor() {
+                this.currentStep = 0;
+                this.isActive = false;
+                this.steps = [];
+                this.highlightedElement = null;
+                this.isTransitioning = false;
+                this.tourId = 'umulkher-tour-v1';
 
-                    // Bind methods
-                    this.next = this.next.bind(this);
-                    this.prev = this.prev.bind(this);
-                    this.start = this.start.bind(this);
-                    this.end = this.end.bind(this);
-                    this.skip = this.skip.bind(this);
-                    this.restart = this.restart.bind(this);
+                // Bind methods
+                this.next = this.next.bind(this);
+                this.prev = this.prev.bind(this);
+                this.start = this.start.bind(this);
+                this.end = this.end.bind(this);
+                this.skip = this.skip.bind(this);
+                this.restart = this.restart.bind(this);
 
-                    // Initialize
-                    this.init();
-                }
+                // Initialize
+                this.init();
+            }
 
-                init() {
-                    // Define tour steps
-                    this.steps = [
-                        {
-                            id: 'welcome',
-                            title: "🌟 Welcome to Your Daily Schedule!",
-                            message: "This is your personal command center for organizing prayers, studies, family time, and personal growth. Let's explore!",
-                            element: "#logo",
-                            position: "bottom",
-                            tooltip: "right",
-                            animation: "fadeIn",
-                            duration: 4000,
-                            action: () => this.scrollToElement("#logo")
-                        },
-                        {
-                            id: 'timeline',
-                            title: "📅 Your Daily Timeline",
-                            message: "Each color represents different activities:<br>🟢 Prayer & Spiritual<br>🔵 Study & Learning<br>🟣 Family & Personal<br>🟡 Breaks & Rest",
-                            element: "#scheduleTimeline",
-                            position: "right",
-                            tooltip: "right",
-                            animation: "slideInRight",
-                            duration: 4500,
-                            action: () => this.scrollToElement("#scheduleTimeline")
-                        },
-                        {
-                            id: 'tasks',
-                            title: "✅ Manage Tasks Easily",
-                            message: "• <strong>Checkbox</strong> - Mark as complete<br>• <strong>Skip</strong> - Reschedule for later<br>• <strong>View Details</strong> - More information<br>• <strong>Remind</strong> - Set notifications",
-                            element: ".time-item:first-child .task-meta",
-                            position: "top",
-                            tooltip: "top",
-                            animation: "pulse",
-                            duration: 5000,
-                            action: () => {
-                                this.scrollToElement(".time-item:first-child");
-                                setTimeout(() => {
-                                    const detailsBtn = document.querySelector('.time-item:first-child .task-details-btn');
-                                    if (detailsBtn) detailsBtn.click();
-                                }, 500);
-                            }
-                        },
-                        {
-                            id: 'days',
-                            title: "📆 Switch Days Instantly",
-                            message: "Each day has different subjects:<br>• Monday: Physics, Kiswahili<br>• Tuesday: Chemistry, English<br>• Wednesday: Biology, Physics<br>• Thursday: Mathematics, Chemistry",
-                            element: ".day-navigation",
-                            position: "bottom",
-                            tooltip: "bottom",
-                            animation: "bounce",
-                            duration: 4000,
-                            action: () => this.scrollToElement(".day-navigation")
-                        },
-                        {
-                            id: 'prayer',
-                            title: "🕌 Prayer Times & Calendar",
-                            message: "<strong>Auto-detect location</strong> for accurate prayer times.<br>Calendar shows all your scheduled events.<br>Red dot = tasks scheduled for that day.",
-                            element: ".prayer-times",
-                            position: "left",
-                            tooltip: "left",
-                            animation: "fadeIn",
-                            duration: 4500,
-                            action: () => this.scrollToElement(".prayer-times")
-                        },
-                        {
-                            id: 'weather',
-                            title: "🌤️ Real-time Weather",
-                            message: "Automatically shows Kitale weather.<br>Click refresh for latest updates.<br>3-day forecast helps plan outdoor activities.",
-                            element: ".weather-section",
-                            position: "left",
-                            tooltip: "left",
-                            animation: "slideInLeft",
-                            duration: 4000,
-                            action: () => this.scrollToElement(".weather-section")
-                        },
-                        {
-                            id: 'progress',
-                            title: "📊 Track Your Growth",
-                            message: "<strong>Achievements</strong> - Earn badges for consistency<br><strong>Habits</strong> - Build daily routines<br><strong>Quran Tracker</strong> - Monitor reading progress<br><strong>Notes</strong> - Jot down important thoughts",
-                            element: ".achievements-section",
-                            position: "left",
-                            tooltip: "left",
-                            animation: "fadeIn",
-                            duration: 5000,
-                            action: () => this.scrollToElement(".achievements-section")
-                        },
-                        {
-                            id: 'tools',
-                            title: "⚡ Productivity Tools",
-                            message: "<strong>Pomodoro Timer</strong> - 25 min focus, 5 min break<br><strong>Voice Commands</strong> - 'Next task', 'Mark done'<br><strong>File Upload</strong> - Store study materials<br><strong>Backup</strong> - Never lose your data",
-                            element: "#pomodoroBtn",
-                            position: "bottom",
-                            tooltip: "top",
-                            animation: "pulse",
-                            duration: 4500,
-                            action: () => this.scrollToElement("#pomodoroBtn")
-                        },
-                        {
-                            id: 'connect',
-                            title: "💬 Connect with Khisa",
-                            message: "<strong>Request Chat</strong> - Instant messaging<br><strong>Request Call</strong> - Voice conversation<br>Khisa gets email notification immediately<br>He's always ready to help!",
-                            element: ".chat-section",
-                            position: "left",
-                            tooltip: "left",
-                            animation: "slideInLeft",
-                            duration: 4000,
-                            action: () => this.scrollToElement(".chat-section")
-                        },
-                        {
-                            id: 'controls',
-                            title: "⚙️ Your Control Center",
-                            message: "• <strong>Profile</strong> - Personal settings<br>• <strong>Settings</strong> - Customize app<br>• <strong>Backup</strong> - Save all data<br>• <strong>Logout</strong> - Secure exit",
-                            element: ".user-info",
-                            position: "bottom",
-                            tooltip: "bottom",
-                            animation: "fadeIn",
-                            duration: 4000,
-                            action: () => this.scrollToElement(".user-info")
-                        },
-                        {
-                            id: 'complete',
-                            title: "🎉 You're Ready to Shine!",
-                            message: "<strong>Remember:</strong><br>• Data saves automatically<br>• Backup weekly<br>• Use Pomodoro for focus<br>• Connect with Khisa anytime<br><br>Start planning your perfect day!",
-                            element: null,
-                            position: "center",
-                            tooltip: "center",
-                            animation: "celebrate",
-                            duration: 5000,
-                            action: () => window.scrollTo({ top: 0, behavior: 'smooth' })
+            init() {
+                // Define tour steps
+                this.steps = [
+                    {
+                        id: 'welcome',
+                        title: "🌟 Welcome to Your Daily Schedule!",
+                        message: "This is your personal command center for organizing prayers, studies, family time, and personal growth. Let's explore!",
+                        element: "#logo",
+                        position: "bottom",
+                        tooltip: "right",
+                        animation: "fadeIn",
+                        duration: 4000,
+                        action: () => this.scrollToElement("#logo")
+                    },
+                    {
+                        id: 'timeline',
+                        title: "📅 Your Daily Timeline",
+                        message: "Each color represents different activities:<br>🟢 Prayer & Spiritual<br>🔵 Study & Learning<br>🟣 Family & Personal<br>🟡 Breaks & Rest",
+                        element: "#scheduleTimeline",
+                        position: "right",
+                        tooltip: "right",
+                        animation: "slideInRight",
+                        duration: 4500,
+                        action: () => this.scrollToElement("#scheduleTimeline")
+                    },
+                    {
+                        id: 'tasks',
+                        title: "✅ Manage Tasks Easily",
+                        message: "• <strong>Checkbox</strong> - Mark as complete<br>• <strong>Skip</strong> - Reschedule for later<br>• <strong>View Details</strong> - More information<br>• <strong>Remind</strong> - Set notifications",
+                        element: ".time-item:first-child .task-meta",
+                        position: "top",
+                        tooltip: "top",
+                        animation: "pulse",
+                        duration: 5000,
+                        action: () => {
+                            this.scrollToElement(".time-item:first-child");
+                            setTimeout(() => {
+                                const detailsBtn = document.querySelector('.time-item:first-child .task-details-btn');
+                                if (detailsBtn) detailsBtn.click();
+                            }, 500);
                         }
-                    ];
+                    },
+                    {
+                        id: 'days',
+                        title: "📆 Switch Days Instantly",
+                        message: "Each day has different subjects:<br>• Monday: Physics, Kiswahili<br>• Tuesday: Chemistry, English<br>• Wednesday: Biology, Physics<br>• Thursday: Mathematics, Chemistry",
+                        element: ".day-navigation",
+                        position: "bottom",
+                        tooltip: "bottom",
+                        animation: "bounce",
+                        duration: 4000,
+                        action: () => this.scrollToElement(".day-navigation")
+                    },
+                    {
+                        id: 'prayer',
+                        title: "🕌 Prayer Times & Calendar",
+                        message: "<strong>Auto-detect location</strong> for accurate prayer times.<br>Calendar shows all your scheduled events.<br>Red dot = tasks scheduled for that day.",
+                        element: ".prayer-times",
+                        position: "left",
+                        tooltip: "left",
+                        animation: "fadeIn",
+                        duration: 4500,
+                        action: () => this.scrollToElement(".prayer-times")
+                    },
+                    {
+                        id: 'weather',
+                        title: "🌤️ Real-time Weather",
+                        message: "Automatically shows Kitale weather.<br>Click refresh for latest updates.<br>3-day forecast helps plan outdoor activities.",
+                        element: ".weather-section",
+                        position: "left",
+                        tooltip: "left",
+                        animation: "slideInLeft",
+                        duration: 4000,
+                        action: () => this.scrollToElement(".weather-section")
+                    },
+                    {
+                        id: 'progress',
+                        title: "📊 Track Your Growth",
+                        message: "<strong>Achievements</strong> - Earn badges for consistency<br><strong>Habits</strong> - Build daily routines<br><strong>Quran Tracker</strong> - Monitor reading progress<br><strong>Notes</strong> - Jot down important thoughts",
+                        element: ".achievements-section",
+                        position: "left",
+                        tooltip: "left",
+                        animation: "fadeIn",
+                        duration: 5000,
+                        action: () => this.scrollToElement(".achievements-section")
+                    },
+                    {
+                        id: 'tools',
+                        title: "⚡ Productivity Tools",
+                        message: "<strong>Pomodoro Timer</strong> - 25 min focus, 5 min break<br><strong>Voice Commands</strong> - 'Next task', 'Mark done'<br><strong>File Upload</strong> - Store study materials<br><strong>Backup</strong> - Never lose your data",
+                        element: "#pomodoroBtn",
+                        position: "bottom",
+                        tooltip: "top",
+                        animation: "pulse",
+                        duration: 4500,
+                        action: () => this.scrollToElement("#pomodoroBtn")
+                    },
+                    {
+                        id: 'connect',
+                        title: "💬 Connect with Khisa",
+                        message: "<strong>Request Chat</strong> - Instant messaging<br><strong>Request Call</strong> - Voice conversation<br>Khisa gets email notification immediately<br>He's always ready to help!",
+                        element: ".chat-section",
+                        position: "left",
+                        tooltip: "left",
+                        animation: "slideInLeft",
+                        duration: 4000,
+                        action: () => this.scrollToElement(".chat-section")
+                    },
+                    {
+                        id: 'controls',
+                        title: "⚙️ Your Control Center",
+                        message: "• <strong>Profile</strong> - Personal settings<br>• <strong>Settings</strong> - Customize app<br>• <strong>Backup</strong> - Save all data<br>• <strong>Logout</strong> - Secure exit",
+                        element: ".user-info",
+                        position: "bottom",
+                        tooltip: "bottom",
+                        animation: "fadeIn",
+                        duration: 4000,
+                        action: () => this.scrollToElement(".user-info")
+                    },
+                    {
+                        id: 'complete',
+                        title: "🎉 You're Ready to Shine!",
+                        message: "<strong>Remember:</strong><br>• Data saves automatically<br>• Backup weekly<br>• Use Pomodoro for focus<br>• Connect with Khisa anytime<br><br>Start planning your perfect day!",
+                        element: null,
+                        position: "center",
+                        tooltip: "center",
+                        animation: "celebrate",
+                        duration: 5000,
+                        action: () => window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }
+                ];
 
-                    // Create DOM elements
-                    this.createTourElements();
+                // Create DOM elements
+                this.createTourElements();
 
-                    // Setup event listeners
-                    this.setupEventListeners();
+                // Setup event listeners
+                this.setupEventListeners();
 
-                    // Check if should auto-start
-                    this.checkAutoStart();
+                // Check if should auto-start
+                this.checkAutoStart();
+            }
+
+            createTourElements() {
+                // Create overlay
+                if (!document.getElementById('tourOverlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.id = 'tourOverlay';
+                    overlay.className = 'tour-overlay';
+                    overlay.innerHTML = '<div class="tour-cutout"></div>';
+                    document.body.appendChild(overlay);
                 }
 
-                createTourElements() {
-                    // Create overlay
-                    if (!document.getElementById('tourOverlay')) {
-                        const overlay = document.createElement('div');
-                        overlay.id = 'tourOverlay';
-                        overlay.className = 'tour-overlay';
-                        overlay.innerHTML = '<div class="tour-cutout"></div>';
-                        document.body.appendChild(overlay);
-                    }
-
-                    // Create tooltip
-                    if (!document.getElementById('tourTooltip')) {
-                        const tooltip = document.createElement('div');
-                        tooltip.id = 'tourTooltip';
-                        tooltip.className = 'tour-tooltip';
-                        tooltip.innerHTML = `
-                            <div class="tour-tooltip-header">
-                                <h3 class="tour-tooltip-title" id="tourTitle"></h3>
-                                <div class="tour-tooltip-progress">
-                                    <span id="tourCurrentStep">1</span> / <span id="tourTotalSteps">${this.steps.length}</span>
-                                </div>
-                                <button class="tour-close" id="tourClose">
-                                    <i class="fas fa-times"></i>
+                // Create tooltip
+                if (!document.getElementById('tourTooltip')) {
+                    const tooltip = document.createElement('div');
+                    tooltip.id = 'tourTooltip';
+                    tooltip.className = 'tour-tooltip';
+                    tooltip.innerHTML = `
+                        <div class="tour-tooltip-header">
+                            <h3 class="tour-tooltip-title" id="tourTitle"></h3>
+                            <div class="tour-tooltip-progress">
+                                <span id="tourCurrentStep">1</span> / <span id="tourTotalSteps">${this.steps.length}</span>
+                            </div>
+                            <button class="tour-close" id="tourClose">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="tour-tooltip-body">
+                            <div class="tour-tooltip-message" id="tourMessage"></div>
+                            <div class="tour-tooltip-illustration">
+                                <i class="fas fa-star" id="tourIcon"></i>
+                            </div>
+                        </div>
+                        <div class="tour-tooltip-footer">
+                            <button class="tour-btn tour-skip" id="tourSkip">
+                                <i class="fas fa-forward"></i> Skip Tour
+                            </button>
+                            <div class="tour-tooltip-navigation">
+                                <button class="tour-btn tour-prev" id="tourPrev">
+                                    <i class="fas fa-arrow-left"></i> Back
+                                </button>
+                                <button class="tour-btn tour-next" id="tourNext">
+                                    Next <i class="fas fa-arrow-right"></i>
+                                </button>
+                                <button class="tour-btn tour-finish" id="tourFinish">
+                                    Let's Go! <i class="fas fa-rocket"></i>
                                 </button>
                             </div>
-                            <div class="tour-tooltip-body">
-                                <div class="tour-tooltip-message" id="tourMessage"></div>
-                                <div class="tour-tooltip-illustration">
-                                    <i class="fas fa-star" id="tourIcon"></i>
-                                </div>
-                            </div>
-                            <div class="tour-tooltip-footer">
-                                <button class="tour-btn tour-skip" id="tourSkip">
-                                    <i class="fas fa-forward"></i> Skip Tour
-                                </button>
-                                <div class="tour-tooltip-navigation">
-                                    <button class="tour-btn tour-prev" id="tourPrev">
-                                        <i class="fas fa-arrow-left"></i> Back
-                                    </button>
-                                    <button class="tour-btn tour-next" id="tourNext">
-                                        Next <i class="fas fa-arrow-right"></i>
-                                    </button>
-                                    <button class="tour-btn tour-finish" id="tourFinish">
-                                        Let's Go! <i class="fas fa-rocket"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                        document.body.appendChild(tooltip);
-                    }
+                        </div>
+                    `;
+                    document.body.appendChild(tooltip);
+                }
 
-                    // Create pointer
-                    if (!document.getElementById('tourPointer')) {
-                        const pointer = document.createElement('div');
-                        pointer.id = 'tourPointer';
-                        pointer.className = 'tour-pointer';
-                        document.body.appendChild(pointer);
-                    }
+                // Create pointer
+                if (!document.getElementById('tourPointer')) {
+                    const pointer = document.createElement('div');
+                    pointer.id = 'tourPointer';
+                    pointer.className = 'tour-pointer';
+                    document.body.appendChild(pointer);
+                }
 
-                    // Add restart button to sidebar if doesn't exist
-                    if (!document.getElementById('tourRestartBtn')) {
-                        const restartBtn = document.createElement('button');
-                        restartBtn.id = 'tourRestartBtn';
-                        restartBtn.className = 'header-btn';
-                        restartBtn.style.cssText = 'width: 100%; margin-top: 10px; display: none;';
-                        restartBtn.innerHTML = '<i class="fas fa-redo"></i> Restart Tutorial';
+                // Add restart button to sidebar if doesn't exist
+                if (!document.getElementById('tourRestartBtn')) {
+                    const restartBtn = document.createElement('button');
+                    restartBtn.id = 'tourRestartBtn';
+                    restartBtn.className = 'header-btn';
+                    restartBtn.style.cssText = 'width: 100%; margin-top: 10px; display: none;';
+                    restartBtn.innerHTML = '<i class="fas fa-redo"></i> Restart Tutorial';
 
-                        // Find a good place to insert it (maybe in Quick Actions)
-                        const quickActions = document.querySelector('.quick-actions');
-                        if (quickActions) {
-                            quickActions.parentNode.insertBefore(restartBtn, quickActions.nextSibling);
-                        } else {
-                            // Add to sidebar
-                            const sidebar = document.querySelector('.sidebar');
-                            if (sidebar) {
-                                const card = document.createElement('div');
-                                card.className = 'sidebar-card';
-                                card.innerHTML = '<h3 class="card-title"><i class="fas fa-graduation-cap"></i> Tutorial</h3>';
-                                card.appendChild(restartBtn);
-                                sidebar.appendChild(card);
-                            }
+                    // Find a good place to insert it (maybe in Quick Actions)
+                    const quickActions = document.querySelector('.quick-actions');
+                    if (quickActions) {
+                        quickActions.parentNode.insertBefore(restartBtn, quickActions.nextSibling);
+                    } else {
+                        // Add to sidebar
+                        const sidebar = document.querySelector('.sidebar');
+                        if (sidebar) {
+                            const card = document.createElement('div');
+                            card.className = 'sidebar-card';
+                            card.innerHTML = '<h3 class="card-title"><i class="fas fa-graduation-cap"></i> Tutorial</h3>';
+                            card.appendChild(restartBtn);
+                            sidebar.appendChild(card);
                         }
                     }
                 }
+            }
 
-                setupEventListeners() {
-                    // Navigation
-                    document.getElementById('tourNext').addEventListener('click', this.next);
-                    document.getElementById('tourPrev').addEventListener('click', this.prev);
-                    document.getElementById('tourFinish').addEventListener('click', this.end);
-                    document.getElementById('tourSkip').addEventListener('click', this.skip);
-                    document.getElementById('tourClose').addEventListener('click', this.skip);
-                    document.getElementById('tourRestartBtn').addEventListener('click', this.restart);
+            setupEventListeners() {
+                // Navigation
+                document.getElementById('tourNext').addEventListener('click', this.next);
+                document.getElementById('tourPrev').addEventListener('click', this.prev);
+                document.getElementById('tourFinish').addEventListener('click', this.end);
+                document.getElementById('tourSkip').addEventListener('click', this.skip);
+                document.getElementById('tourClose').addEventListener('click', this.skip);
+                document.getElementById('tourRestartBtn').addEventListener('click', this.restart);
 
-                    // Keyboard
-                    document.addEventListener('keydown', (e) => {
-                        if (!this.isActive) return;
+                // Keyboard
+                document.addEventListener('keydown', (e) => {
+                    if (!this.isActive) return;
 
-                        switch(e.key) {
-                            case 'Escape':
-                                this.skip();
-                                break;
-                            case 'ArrowRight':
-                            case ' ':
-                                e.preventDefault();
-                                this.next();
-                                break;
-                            case 'ArrowLeft':
-                                e.preventDefault();
-                                this.prev();
-                                break;
-                        }
-                    });
-
-                    // Click on highlighted element to proceed
-                    document.addEventListener('click', (e) => {
-                        if (!this.isActive || this.isTransitioning) return;
-
-                        if (this.highlightedElement && this.highlightedElement.contains(e.target)) {
+                    switch(e.key) {
+                        case 'Escape':
+                            this.skip();
+                            break;
+                        case 'ArrowRight':
+                        case ' ':
+                            e.preventDefault();
                             this.next();
-                        }
-                    });
-                }
-
-                checkAutoStart() {
-                    const hasSeenTour = localStorage.getItem(this.tourId);
-                    const isFirstLogin = localStorage.getItem('isFirstLogin') === 'true';
-
-                    if ((!hasSeenTour && userAuthenticated) || isFirstLogin) {
-                        // Delay to let page load completely
-                        setTimeout(() => this.start(), 1800);
-                        localStorage.setItem('isFirstLogin', 'false');
-                    } else if (hasSeenTour) {
-                        // Show restart button
-                        document.getElementById('tourRestartBtn').style.display = 'block';
+                            break;
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.prev();
+                            break;
                     }
-                }
+                });
 
-                start() {
-                    if (this.isActive) return;
+                // Click on highlighted element to proceed
+                document.addEventListener('click', (e) => {
+                    if (!this.isActive || this.isTransitioning) return;
 
-                    this.isActive = true;
-                    this.currentStep = 0;
+                    if (this.highlightedElement && this.highlightedElement.contains(e.target)) {
+                        this.next();
+                    }
+                });
+            }
 
-                    // Show elements with animation
-                    document.getElementById('tourOverlay').classList.add('active');
-                    setTimeout(() => {
-                        document.getElementById('tourTooltip').classList.add('active');
-                    }, 300);
+            checkAutoStart() {
+                const hasSeenTour = localStorage.getItem(this.tourId);
+                const isFirstLogin = localStorage.getItem('isFirstLogin') === 'true';
 
-                    // Update total steps
-                    document.getElementById('tourTotalSteps').textContent = this.steps.length;
-
-                    // Show current step
-                    this.showStep();
-
-                    // Mark as seen
-                    localStorage.setItem(this.tourId, 'true');
-
+                if ((!hasSeenTour && userAuthenticated) || isFirstLogin) {
+                    // Delay to let page load completely
+                    setTimeout(() => this.start(), 1800);
+                    localStorage.setItem('isFirstLogin', 'false');
+                } else if (hasSeenTour) {
                     // Show restart button
                     document.getElementById('tourRestartBtn').style.display = 'block';
+                }
+            }
 
-                    // Send notification
-                    this.sendNotification('Tour started', 'Interactive tutorial has begun');
+            start() {
+                if (this.isActive) return;
+
+                this.isActive = true;
+                this.currentStep = 0;
+
+                // Show elements with animation
+                document.getElementById('tourOverlay').classList.add('active');
+                setTimeout(() => {
+                    document.getElementById('tourTooltip').classList.add('active');
+                }, 300);
+
+                // Update total steps
+                document.getElementById('tourTotalSteps').textContent = this.steps.length;
+
+                // Show current step
+                this.showStep();
+
+                // Mark as seen
+                localStorage.setItem(this.tourId, 'true');
+
+                // Show restart button
+                document.getElementById('tourRestartBtn').style.display = 'block';
+
+                // Send notification
+                this.sendNotification('Tour started', 'Interactive tutorial has begun');
+            }
+
+            showStep() {
+                if (this.currentStep >= this.steps.length) {
+                    this.end();
+                    return;
                 }
 
-                showStep() {
-                    if (this.currentStep >= this.steps.length) {
-                        this.end();
-                        return;
-                    }
+                this.isTransitioning = true;
 
-                    this.isTransitioning = true;
+                const step = this.steps[this.currentStep];
 
-                    const step = this.steps[this.currentStep];
+                // Update UI
+                document.getElementById('tourTitle').textContent = step.title;
+                document.getElementById('tourMessage').innerHTML = step.message;
+                document.getElementById('tourCurrentStep').textContent = this.currentStep + 1;
+                document.getElementById('tourIcon').className = this.getStepIcon(step.id);
 
-                    // Update UI
-                    document.getElementById('tourTitle').textContent = step.title;
-                    document.getElementById('tourMessage').innerHTML = step.message;
-                    document.getElementById('tourCurrentStep').textContent = this.currentStep + 1;
-                    document.getElementById('tourIcon').className = this.getStepIcon(step.id);
+                // Update buttons
+                document.getElementById('tourPrev').style.display = this.currentStep === 0 ? 'none' : 'flex';
+                document.getElementById('tourNext').style.display = this.currentStep === this.steps.length - 1 ? 'none' : 'flex';
+                document.getElementById('tourFinish').style.display = this.currentStep === this.steps.length - 1 ? 'flex' : 'none';
 
-                    // Update buttons
-                    document.getElementById('tourPrev').style.display = this.currentStep === 0 ? 'none' : 'flex';
-                    document.getElementById('tourNext').style.display = this.currentStep === this.steps.length - 1 ? 'none' : 'flex';
-                    document.getElementById('tourFinish').style.display = this.currentStep === this.steps.length - 1 ? 'flex' : 'none';
-
-                    // Remove previous highlight
-                    if (this.highlightedElement) {
-                        this.highlightedElement.classList.remove('tour-highlighted');
-                        this.highlightedElement.style.zIndex = '';
-                    }
-
-                    // Execute step action
-                    if (step.action) {
-                        step.action();
-                    }
-
-                    // Highlight element
-                    if (step.element) {
-                        this.highlightElement(step);
-                    } else {
-                        // Final step - center everything
-                        this.positionCenter();
-                    }
-
-                    // Add animation class
-                    document.getElementById('tourTooltip').className = `tour-tooltip active ${step.animation}`;
-
-                    // Auto-advance after duration (optional)
-                    if (step.duration) {
-                        clearTimeout(this.autoAdvanceTimer);
-                        this.autoAdvanceTimer = setTimeout(() => this.next(), step.duration);
-                    }
-
-                    // Transition complete
-                    setTimeout(() => {
-                        this.isTransitioning = false;
-                    }, 500);
+                // Remove previous highlight
+                if (this.highlightedElement) {
+                    this.highlightedElement.classList.remove('tour-highlighted');
+                    this.highlightedElement.style.zIndex = '';
                 }
 
-                highlightElement(step) {
-                    const element = document.querySelector(step.element);
-                    if (!element) {
-                        console.warn(`Tour element not found: ${step.element}`);
-                        setTimeout(() => this.next(), 1000);
-                        return;
-                    }
+                // Execute step action
+                if (step.action) {
+                    step.action();
+                }
 
-                    this.highlightedElement = element;
+                // Highlight element
+                if (step.element) {
+                    this.highlightElement(step);
+                } else {
+                    // Final step - center everything
+                    this.positionCenter();
+                }
 
-                    // Add highlight class
-                    element.classList.add('tour-highlighted');
-                    element.style.zIndex = '10002';
+                // Add animation class
+                document.getElementById('tourTooltip').className = `tour-tooltip active ${step.animation}`;
 
-                    // Calculate positions
-                    const rect = element.getBoundingClientRect();
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+                // Auto-advance after duration (optional)
+                if (step.duration) {
+                    clearTimeout(this.autoAdvanceTimer);
+                    this.autoAdvanceTimer = setTimeout(() => this.next(), step.duration);
+                }
 
-                    // Update cutout
-                    const overlay = document.getElementById('tourOverlay');
-                    overlay.style.setProperty('--cutout-top', `${rect.top + scrollTop - 10}px`);
-                    overlay.style.setProperty('--cutout-left', `${rect.left + scrollLeft - 10}px`);
-                    overlay.style.setProperty('--cutout-width', `${rect.width + 20}px`);
-                    overlay.style.setProperty('--cutout-height', `${rect.height + 20}px`);
+                // Transition complete
+                setTimeout(() => {
+                    this.isTransitioning = false;
+                }, 500);
+            }
 
-                    // Position tooltip
-                    this.positionTooltip(element, step.tooltip);
+            highlightElement(step) {
+                const element = document.querySelector(step.element);
+                if (!element) {
+                    console.warn(`Tour element not found: ${step.element}`);
+                    setTimeout(() => this.next(), 1000);
+                    return;
+                }
 
-                    // Position pointer
-                    this.positionPointer(element, step.position);
+                this.highlightedElement = element;
 
-                    // Ensure element is visible
+                // Add highlight class
+                element.classList.add('tour-highlighted');
+                element.style.zIndex = '10002';
+
+                // Calculate positions
+                const rect = element.getBoundingClientRect();
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+                // Update cutout
+                const overlay = document.getElementById('tourOverlay');
+                overlay.style.setProperty('--cutout-top', `${rect.top + scrollTop - 10}px`);
+                overlay.style.setProperty('--cutout-left', `${rect.left + scrollLeft - 10}px`);
+                overlay.style.setProperty('--cutout-width', `${rect.width + 20}px`);
+                overlay.style.setProperty('--cutout-height', `${rect.height + 20}px`);
+
+                // Position tooltip
+                this.positionTooltip(element, step.tooltip);
+
+                // Position pointer
+                this.positionPointer(element, step.position);
+
+                // Ensure element is visible
+                element.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'center'
+                });
+            }
+
+            positionTooltip(element, position) {
+                const tooltip = document.getElementById('tourTooltip');
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+
+                let top, left;
+                const padding = 25;
+                const viewportPadding = 20;
+
+                switch(position) {
+                    case 'top':
+                        top = elementRect.top - tooltipRect.height - padding;
+                        left = elementRect.left + (elementRect.width / 2) - (tooltipRect.width / 2);
+                        break;
+                    case 'bottom':
+                        top = elementRect.bottom + padding;
+                        left = elementRect.left + (elementRect.width / 2) - (tooltipRect.width / 2);
+                        break;
+                    case 'left':
+                        top = elementRect.top + (elementRect.height / 2) - (tooltipRect.height / 2);
+                        left = elementRect.left - tooltipRect.width - padding;
+                        break;
+                    case 'right':
+                        top = elementRect.top + (elementRect.height / 2) - (tooltipRect.height / 2);
+                        left = elementRect.right + padding;
+                        break;
+                    default:
+                        // Center
+                        top = window.innerHeight / 2 - tooltipRect.height / 2;
+                        left = window.innerWidth / 2 - tooltipRect.width / 2;
+                }
+
+                // Keep within viewport
+                top = Math.max(viewportPadding, Math.min(top, window.innerHeight - tooltipRect.height - viewportPadding));
+                left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+                tooltip.style.top = `${top}px`;
+                tooltip.style.left = `${left}px`;
+            }
+
+            positionPointer(element, position) {
+                const pointer = document.getElementById('tourPointer');
+                const elementRect = element.getBoundingClientRect();
+
+                pointer.className = `tour-pointer ${position} active`;
+
+                switch(position) {
+                    case 'top':
+                        pointer.style.top = `${elementRect.bottom}px`;
+                        pointer.style.left = `${elementRect.left + elementRect.width / 2 - 10}px`;
+                        break;
+                    case 'bottom':
+                        pointer.style.top = `${elementRect.top - 20}px`;
+                        pointer.style.left = `${elementRect.left + elementRect.width / 2 - 10}px`;
+                        break;
+                    case 'left':
+                        pointer.style.top = `${elementRect.top + elementRect.height / 2 - 10}px`;
+                        pointer.style.left = `${elementRect.right}px`;
+                        break;
+                    case 'right':
+                        pointer.style.top = `${elementRect.top + elementRect.height / 2 - 10}px`;
+                        pointer.style.left = `${elementRect.left - 20}px`;
+                        break;
+                }
+            }
+
+            positionCenter() {
+                const tooltip = document.getElementById('tourTooltip');
+                const tooltipRect = tooltip.getBoundingClientRect();
+
+                tooltip.style.top = `${window.innerHeight / 2 - tooltipRect.height / 2}px`;
+                tooltip.style.left = `${window.innerWidth / 2 - tooltipRect.width / 2}px`;
+
+                // Hide pointer
+                document.getElementById('tourPointer').classList.remove('active');
+
+                // Remove cutout
+                document.getElementById('tourOverlay').style.cssText = '';
+            }
+
+            next() {
+                if (this.isTransitioning || this.currentStep >= this.steps.length - 1) {
+                    this.end();
+                    return;
+                }
+
+                this.currentStep++;
+                this.showStep();
+
+                // Play sound (optional)
+                this.playSound('next');
+            }
+
+            prev() {
+                if (this.isTransitioning || this.currentStep <= 0) return;
+
+                this.currentStep--;
+                this.showStep();
+
+                // Play sound (optional)
+                this.playSound('prev');
+            }
+
+            end() {
+                if (!this.isActive) return;
+
+                this.isActive = false;
+                this.isTransitioning = false;
+
+                // Remove highlights
+                if (this.highlightedElement) {
+                    this.highlightedElement.classList.remove('tour-highlighted');
+                    this.highlightedElement.style.zIndex = '';
+                }
+
+                // Hide elements with fade out
+                document.getElementById('tourTooltip').classList.remove('active');
+                setTimeout(() => {
+                    document.getElementById('tourOverlay').classList.remove('active');
+                    document.getElementById('tourPointer').classList.remove('active');
+                }, 300);
+
+                // Clear auto-advance timer
+                clearTimeout(this.autoAdvanceTimer);
+
+                // Show success notification
+                this.sendNotification('Tour completed', 'You are now ready to use your daily schedule!');
+
+                // Celebration effect
+                this.celebrate();
+            }
+
+            skip() {
+                if (confirm('Skip the tutorial? You can restart it anytime using the "Restart Tutorial" button.')) {
+                    this.end();
+                }
+            }
+
+            restart() {
+                if (confirm('Restart the tutorial?')) {
+                    this.currentStep = 0;
+                    this.start();
+                }
+            }
+
+            // Helper methods
+            scrollToElement(selector) {
+                const element = document.querySelector(selector);
+                if (element) {
                     element.scrollIntoView({
                         behavior: 'smooth',
                         block: 'center',
                         inline: 'center'
                     });
                 }
+            }
 
-                positionTooltip(element, position) {
-                    const tooltip = document.getElementById('tourTooltip');
-                    const tooltipRect = tooltip.getBoundingClientRect();
-                    const elementRect = element.getBoundingClientRect();
+            getStepIcon(stepId) {
+                const icons = {
+                    'welcome': 'fas fa-star',
+                    'timeline': 'fas fa-calendar-alt',
+                    'tasks': 'fas fa-tasks',
+                    'days': 'fas fa-calendar-day',
+                    'prayer': 'fas fa-mosque',
+                    'weather': 'fas fa-cloud-sun',
+                    'progress': 'fas fa-chart-line',
+                    'tools': 'fas fa-tools',
+                    'connect': 'fas fa-comments',
+                    'controls': 'fas fa-cog',
+                    'complete': 'fas fa-trophy'
+                };
+                return icons[stepId] || 'fas fa-info-circle';
+            }
 
-                    let top, left;
-                    const padding = 25;
-                    const viewportPadding = 20;
+            playSound(type) {
+                // Optional: Add sound effects
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
 
-                    switch(position) {
-                        case 'top':
-                            top = elementRect.top - tooltipRect.height - padding;
-                            left = elementRect.left + (elementRect.width / 2) - (tooltipRect.width / 2);
-                            break;
-                        case 'bottom':
-                            top = elementRect.bottom + padding;
-                            left = elementRect.left + (elementRect.width / 2) - (tooltipRect.width / 2);
-                            break;
-                        case 'left':
-                            top = elementRect.top + (elementRect.height / 2) - (tooltipRect.height / 2);
-                            left = elementRect.left - tooltipRect.width - padding;
-                            break;
-                        case 'right':
-                            top = elementRect.top + (elementRect.height / 2) - (tooltipRect.height / 2);
-                            left = elementRect.right + padding;
-                            break;
-                        default:
-                            // Center
-                            top = window.innerHeight / 2 - tooltipRect.height / 2;
-                            left = window.innerWidth / 2 - tooltipRect.width / 2;
-                    }
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
 
-                    // Keep within viewport
-                    top = Math.max(viewportPadding, Math.min(top, window.innerHeight - tooltipRect.height - viewportPadding));
-                    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+                    oscillator.frequency.setValueAtTime(type === 'next' ? 800 : 600, audioContext.currentTime);
+                    oscillator.type = 'sine';
 
-                    tooltip.style.top = `${top}px`;
-                    tooltip.style.left = `${left}px`;
-                }
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
 
-                positionPointer(element, position) {
-                    const pointer = document.getElementById('tourPointer');
-                    const elementRect = element.getBoundingClientRect();
-
-                    pointer.className = `tour-pointer ${position} active`;
-
-                    switch(position) {
-                        case 'top':
-                            pointer.style.top = `${elementRect.bottom}px`;
-                            pointer.style.left = `${elementRect.left + elementRect.width / 2 - 10}px`;
-                            break;
-                        case 'bottom':
-                            pointer.style.top = `${elementRect.top - 20}px`;
-                            pointer.style.left = `${elementRect.left + elementRect.width / 2 - 10}px`;
-                            break;
-                        case 'left':
-                            pointer.style.top = `${elementRect.top + elementRect.height / 2 - 10}px`;
-                            pointer.style.left = `${elementRect.right}px`;
-                            break;
-                        case 'right':
-                            pointer.style.top = `${elementRect.top + elementRect.height / 2 - 10}px`;
-                            pointer.style.left = `${elementRect.left - 20}px`;
-                            break;
-                    }
-                }
-
-                positionCenter() {
-                    const tooltip = document.getElementById('tourTooltip');
-                    const tooltipRect = tooltip.getBoundingClientRect();
-
-                    tooltip.style.top = `${window.innerHeight / 2 - tooltipRect.height / 2}px`;
-                    tooltip.style.left = `${window.innerWidth / 2 - tooltipRect.width / 2}px`;
-
-                    // Hide pointer
-                    document.getElementById('tourPointer').classList.remove('active');
-
-                    // Remove cutout
-                    document.getElementById('tourOverlay').style.cssText = '';
-                }
-
-                next() {
-                    if (this.isTransitioning || this.currentStep >= this.steps.length - 1) {
-                        this.end();
-                        return;
-                    }
-
-                    this.currentStep++;
-                    this.showStep();
-
-                    // Play sound (optional)
-                    this.playSound('next');
-                }
-
-                prev() {
-                    if (this.isTransitioning || this.currentStep <= 0) return;
-
-                    this.currentStep--;
-                    this.showStep();
-
-                    // Play sound (optional)
-                    this.playSound('prev');
-                }
-
-                end() {
-                    if (!this.isActive) return;
-
-                    this.isActive = false;
-                    this.isTransitioning = false;
-
-                    // Remove highlights
-                    if (this.highlightedElement) {
-                        this.highlightedElement.classList.remove('tour-highlighted');
-                        this.highlightedElement.style.zIndex = '';
-                    }
-
-                    // Hide elements with fade out
-                    document.getElementById('tourTooltip').classList.remove('active');
-                    setTimeout(() => {
-                        document.getElementById('tourOverlay').classList.remove('active');
-                        document.getElementById('tourPointer').classList.remove('active');
-                    }, 300);
-
-                    // Clear auto-advance timer
-                    clearTimeout(this.autoAdvanceTimer);
-
-                    // Show success notification
-                    this.sendNotification('Tour completed', 'You are now ready to use your daily schedule!');
-
-                    // Celebration effect
-                    this.celebrate();
-                }
-
-                skip() {
-                    if (confirm('Skip the tutorial? You can restart it anytime using the "Restart Tutorial" button.')) {
-                        this.end();
-                    }
-                }
-
-                restart() {
-                    if (confirm('Restart the tutorial?')) {
-                        this.currentStep = 0;
-                        this.start();
-                    }
-                }
-
-                // Helper methods
-                scrollToElement(selector) {
-                    const element = document.querySelector(selector);
-                    if (element) {
-                        element.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center',
-                            inline: 'center'
-                        });
-                    }
-                }
-
-                getStepIcon(stepId) {
-                    const icons = {
-                        'welcome': 'fas fa-star',
-                        'timeline': 'fas fa-calendar-alt',
-                        'tasks': 'fas fa-tasks',
-                        'days': 'fas fa-calendar-day',
-                        'prayer': 'fas fa-mosque',
-                        'weather': 'fas fa-cloud-sun',
-                        'progress': 'fas fa-chart-line',
-                        'tools': 'fas fa-tools',
-                        'connect': 'fas fa-comments',
-                        'controls': 'fas fa-cog',
-                        'complete': 'fas fa-trophy'
-                    };
-                    return icons[stepId] || 'fas fa-info-circle';
-                }
-
-                playSound(type) {
-                    // Optional: Add sound effects
-                    try {
-                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        const oscillator = audioContext.createOscillator();
-                        const gainNode = audioContext.createGain();
-
-                        oscillator.connect(gainNode);
-                        gainNode.connect(audioContext.destination);
-
-                        oscillator.frequency.setValueAtTime(type === 'next' ? 800 : 600, audioContext.currentTime);
-                        oscillator.type = 'sine';
-
-                        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.1);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-                        oscillator.start(audioContext.currentTime);
-                        oscillator.stop(audioContext.currentTime + 0.5);
-                    } catch (e) {
-                        // Audio not supported - ignore
-                    }
-                }
-
-                celebrate() {
-                    // Add celebration effect
-                    for (let i = 0; i < 15; i++) {
-                        setTimeout(() => {
-                            const confetti = document.createElement('div');
-                            confetti.className = 'confetti';
-                            confetti.style.cssText = `
-                                position: fixed;
-                                width: 10px;
-                                height: 10px;
-                                background: ${['#d4af37', '#1e6b52', '#2a4d7a', '#6a4c93'][Math.floor(Math.random() * 4)]};
-                                border-radius: 50%;
-                                top: -20px;
-                                left: ${Math.random() * 100}vw;
-                                z-index: 99999;
-                                animation: confetti-fall ${0.5 + Math.random()}s linear forwards;
-                            `;
-                            document.body.appendChild(confetti);
-
-                            setTimeout(() => confetti.remove(), 2000);
-                        }, i * 100);
-                    }
-
-                    // Add confetti animation to CSS if not exists
-                    if (!document.getElementById('confetti-style')) {
-                        const style = document.createElement('style');
-                        style.id = 'confetti-style';
-                        style.textContent = `
-                            @keyframes confetti-fall {
-                                0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-                                100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-                            }
-                        `;
-                        document.head.appendChild(style);
-                    }
-                }
-
-                sendNotification(title, message) {
-                    // Use your existing notification system
-                    if (typeof showNotification === 'function') {
-                        showNotification(title, message);
-                    }
-
-                    // Send email if function exists
-                    if (typeof sendEmail === 'function') {
-                        sendEmail(
-                            `Tour: ${title}`,
-                            `Umulkher ${title.toLowerCase()}\n${message}\nTime: ${new Date().toLocaleString()}`,
-                            'tour',
-                            'Onboarding'
-                        );
-                    }
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (e) {
+                    // Audio not supported - ignore
                 }
             }
 
-            // ============================================================================
-            // INITIALIZATION & INTEGRATION
-            // ============================================================================
+            celebrate() {
+                // Add celebration effect
+                for (let i = 0; i < 15; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.cssText = `
+                            position: fixed;
+                            width: 10px;
+                            height: 10px;
+                            background: ${['#d4af37', '#1e6b52', '#2a4d7a', '#6a4c93'][Math.floor(Math.random() * 4)]};
+                            border-radius: 50%;
+                            top: -20px;
+                            left: ${Math.random() * 100}vw;
+                            z-index: 99999;
+                            animation: confetti-fall ${0.5 + Math.random()}s linear forwards;
+                        `;
+                        document.body.appendChild(confetti);
 
-            // Create global instance
-            window.umulkherTour = null;
-
-            // Initialize when page loads
-            document.addEventListener('DOMContentLoaded', function() {
-                // Wait for page to fully load
-                setTimeout(() => {
-                    window.umulkherTour = new OnboardingTour();
-                }, 1000);
-            });
-
-            // Add this to your handleLogin function after successful login:
-            // localStorage.setItem('isFirstLogin', 'true');
-
-            // Add CSS for the tour (add this to your CSS file)
-            const tourCSS = `
-                /* Tour Overlay */
-                .tour-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0, 0, 0, 0.85);
-                    backdrop-filter: blur(8px);
-                    z-index: 9998;
-                    opacity: 0;
-                    visibility: hidden;
-                    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                        setTimeout(() => confetti.remove(), 2000);
+                    }, i * 100);
                 }
 
-                .tour-overlay.active {
-                    opacity: 1;
-                    visibility: visible;
+                // Add confetti animation to CSS if not exists
+                if (!document.getElementById('confetti-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'confetti-style';
+                    style.textContent = `
+                        @keyframes confetti-fall {
+                            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+
+            sendNotification(title, message) {
+                // Use your existing notification system
+                if (typeof showNotification === 'function') {
+                    showNotification(title, message);
                 }
 
-                .tour-overlay .tour-cutout {
-                    position: absolute;
-                    border: 3px solid #d4af37;
-                    border-radius: 16px;
-                    box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.15),
-                                inset 0 0 25px rgba(212, 175, 55, 0.4),
-                                0 0 50px rgba(212, 175, 55, 0.6);
-                    animation: tour-pulse 2s infinite;
-                    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                // Send email if function exists
+                if (typeof sendEmail === 'function') {
+                    sendEmail(
+                        `Tour: ${title}`,
+                        `Umulkher ${title.toLowerCase()}\n${message}\nTime: ${new Date().toLocaleString()}`,
+                        'tour',
+                        'Onboarding'
+                    );
                 }
+            }
+        }
 
-                @keyframes tour-pulse {
-                    0%, 100% { box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.15),
-                                inset 0 0 25px rgba(212, 175, 55, 0.4),
-                                0 0 50px rgba(212, 175, 55, 0.6); }
-                    50% { box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.2),
-                                inset 0 0 30px rgba(212, 175, 55, 0.5),
-                                0 0 60px rgba(212, 175, 55, 0.8); }
-                }
+        // ============================================================================
+        // INITIALIZATION & INTEGRATION
+        // ============================================================================
 
-                /* Tour Tooltip */
+        // Create global instance
+        window.umulkherTour = null;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for page to fully load
+            setTimeout(() => {
+                window.umulkherTour = new OnboardingTour();
+            }, 1000);
+        });
+
+        // Add this to your handleLogin function after successful login:
+        // localStorage.setItem('isFirstLogin', 'true');
+
+        // Add CSS for the tour (add this to your CSS file)
+        const tourCSS = `
+            /* Tour Overlay */
+            .tour-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                backdrop-filter: blur(8px);
+                z-index: 9998;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .tour-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .tour-overlay .tour-cutout {
+                position: absolute;
+                border: 3px solid #d4af37;
+                border-radius: 16px;
+                box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.15),
+                            inset 0 0 25px rgba(212, 175, 55, 0.4),
+                            0 0 50px rgba(212, 175, 55, 0.6);
+                animation: tour-pulse 2s infinite;
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            @keyframes tour-pulse {
+                0%, 100% { box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.15),
+                            inset 0 0 25px rgba(212, 175, 55, 0.4),
+                            0 0 50px rgba(212, 175, 55, 0.6); }
+                50% { box-shadow: 0 0 0 9999px rgba(212, 175, 55, 0.2),
+                            inset 0 0 30px rgba(212, 175, 55, 0.5),
+                            0 0 60px rgba(212, 175, 55, 0.8); }
+            }
+
+            /* Tour Tooltip */
+            .tour-tooltip {
+                position: fixed;
+                background: linear-gradient(145deg, #151515 0%, #1a1a1a 100%);
+                border-radius: 20px;
+                padding: 25px;
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9),
+                            0 0 0 1px rgba(212, 175, 55, 0.3),
+                            0 0 40px rgba(212, 175, 55, 0.3);
+                border: 1px solid rgba(212, 175, 55, 0.4);
+                z-index: 9999;
+                min-width: 350px;
+                max-width: 450px;
+                opacity: 0;
+                visibility: hidden;
+                transform: scale(0.95) translateY(20px);
+                transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            .tour-tooltip.active {
+                opacity: 1;
+                visibility: visible;
+                transform: scale(1) translateY(0);
+            }
+
+            .tour-tooltip::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 4px;
+                background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
+                border-radius: 20px 20px 0 0;
+            }
+
+            /* Animations */
+            .tour-tooltip.fadeIn { animation: fadeIn 0.5s ease; }
+            .tour-tooltip.slideInRight { animation: slideInRight 0.5s ease; }
+            .tour-tooltip.slideInLeft { animation: slideInLeft 0.5s ease; }
+            .tour-tooltip.bounce { animation: bounce 0.8s ease; }
+            .tour-tooltip.pulse { animation: pulse 1s ease infinite; }
+            .tour-tooltip.celebrate { animation: celebrate 0.6s ease; }
+
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes slideInRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes slideInLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+            @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+            @keyframes celebrate { 0% { transform: scale(0.5) rotate(-10deg); } 70% { transform: scale(1.05) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
+
+            /* Tooltip Content */
+            .tour-tooltip-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .tour-tooltip-title {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #fff;
+                margin: 0;
+                flex: 1;
+            }
+
+            .tour-tooltip-progress {
+                background: rgba(212, 175, 55, 0.2);
+                border-radius: 20px;
+                padding: 8px 16px;
+                font-weight: 700;
+                color: #d4af37;
+                font-family: 'Montserrat', sans-serif;
+                margin: 0 15px;
+                border: 1px solid rgba(212, 175, 55, 0.3);
+            }
+
+            .tour-close {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(212, 175, 55, 0.2);
+                border-radius: 12px;
+                color: #b0b0b0;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .tour-close:hover {
+                background: rgba(212, 175, 55, 0.1);
+                color: #d4af37;
+                border-color: #d4af37;
+            }
+
+            .tour-tooltip-body {
+                margin: 20px 0;
+            }
+
+            .tour-tooltip-message {
+                font-size: 1.1rem;
+                line-height: 1.6;
+                color: #f5f5f5;
+                margin-bottom: 20px;
+            }
+
+            .tour-tooltip-illustration {
+                text-align: center;
+                margin-top: 20px;
+            }
+
+            .tour-tooltip-illustration i {
+                font-size: 3rem;
+                color: #d4af37;
+                opacity: 0.7;
+            }
+
+            .tour-tooltip-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .tour-tooltip-navigation {
+                display: flex;
+                gap: 12px;
+                margin-left: auto;
+            }
+
+            .tour-btn {
+                padding: 12px 24px;
+                border-radius: 12px;
+                border: 1px solid rgba(212, 175, 55, 0.2);
+                background: rgba(212, 175, 55, 0.1);
+                color: #f5f5f5;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-family: 'Inter', sans-serif;
+            }
+
+            .tour-btn:hover {
+                background: rgba(212, 175, 55, 0.2);
+                transform: translateY(-2px);
+                border-color: #d4af37;
+            }
+
+            .tour-btn.tour-finish {
+                background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
+                color: #0a0a0a;
+                border: none;
+            }
+
+            .tour-btn.tour-finish:hover {
+                box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
+            }
+
+            /* Tour Pointer */
+            .tour-pointer {
+                position: fixed;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                z-index: 10000;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .tour-pointer.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .tour-pointer.top {
+                border-width: 0 15px 15px 15px;
+                border-color: transparent transparent #d4af37 transparent;
+                filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+            }
+
+            .tour-pointer.bottom {
+                border-width: 15px 15px 0 15px;
+                border-color: #d4af37 transparent transparent transparent;
+                filter: drop-shadow(0 -3px 6px rgba(0,0,0,0.4));
+            }
+
+            .tour-pointer.left {
+                border-width: 15px 15px 15px 0;
+                border-color: transparent #d4af37 transparent transparent;
+                filter: drop-shadow(3px 0 6px rgba(0,0,0,0.4));
+            }
+
+            .tour-pointer.right {
+                border-width: 15px 0 15px 15px;
+                border-color: transparent transparent transparent #d4af37;
+                filter: drop-shadow(-3px 0 6px rgba(0,0,0,0.4));
+            }
+
+            /* Highlighted Element */
+            .tour-highlighted {
+                position: relative !important;
+                z-index: 10002 !important;
+                animation: element-glow 2s infinite;
+            }
+
+            @keyframes element-glow {
+                0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.3); }
+                50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.5); }
+            }
+
+            /* Responsive */
+            @media (max-width: 768px) {
                 .tour-tooltip {
-                    position: fixed;
-                    background: linear-gradient(145deg, #151515 0%, #1a1a1a 100%);
-                    border-radius: 20px;
-                    padding: 25px;
-                    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9),
-                                0 0 0 1px rgba(212, 175, 55, 0.3),
-                                0 0 40px rgba(212, 175, 55, 0.3);
-                    border: 1px solid rgba(212, 175, 55, 0.4);
-                    z-index: 9999;
-                    min-width: 350px;
-                    max-width: 450px;
-                    opacity: 0;
-                    visibility: hidden;
-                    transform: scale(0.95) translateY(20px);
-                    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-                }
-
-                .tour-tooltip.active {
-                    opacity: 1;
-                    visibility: visible;
-                    transform: scale(1) translateY(0);
-                }
-
-                .tour-tooltip::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 4px;
-                    background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
-                    border-radius: 20px 20px 0 0;
-                }
-
-                /* Animations */
-                .tour-tooltip.fadeIn { animation: fadeIn 0.5s ease; }
-                .tour-tooltip.slideInRight { animation: slideInRight 0.5s ease; }
-                .tour-tooltip.slideInLeft { animation: slideInLeft 0.5s ease; }
-                .tour-tooltip.bounce { animation: bounce 0.8s ease; }
-                .tour-tooltip.pulse { animation: pulse 1s ease infinite; }
-                .tour-tooltip.celebrate { animation: celebrate 0.6s ease; }
-
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slideInRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                @keyframes slideInLeft { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-                @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
-                @keyframes celebrate { 0% { transform: scale(0.5) rotate(-10deg); } 70% { transform: scale(1.05) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
-
-                /* Tooltip Content */
-                .tour-tooltip-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                    padding-bottom: 15px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    min-width: 280px;
+                    max-width: 90%;
+                    margin: 15px;
+                    padding: 20px;
                 }
 
                 .tour-tooltip-title {
-                    font-family: 'Montserrat', sans-serif;
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: #fff;
-                    margin: 0;
-                    flex: 1;
+                    font-size: 1.3rem;
                 }
 
                 .tour-tooltip-progress {
-                    background: rgba(212, 175, 55, 0.2);
-                    border-radius: 20px;
-                    padding: 8px 16px;
-                    font-weight: 700;
-                    color: #d4af37;
-                    font-family: 'Montserrat', sans-serif;
-                    margin: 0 15px;
-                    border: 1px solid rgba(212, 175, 55, 0.3);
-                }
-
-                .tour-close {
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(212, 175, 55, 0.2);
-                    border-radius: 12px;
-                    color: #b0b0b0;
-                    width: 40px;
-                    height: 40px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-
-                .tour-close:hover {
-                    background: rgba(212, 175, 55, 0.1);
-                    color: #d4af37;
-                    border-color: #d4af37;
-                }
-
-                .tour-tooltip-body {
-                    margin: 20px 0;
+                    padding: 6px 12px;
+                    font-size: 0.9rem;
                 }
 
                 .tour-tooltip-message {
-                    font-size: 1.1rem;
-                    line-height: 1.6;
-                    color: #f5f5f5;
-                    margin-bottom: 20px;
-                }
-
-                .tour-tooltip-illustration {
-                    text-align: center;
-                    margin-top: 20px;
-                }
-
-                .tour-tooltip-illustration i {
-                    font-size: 3rem;
-                    color: #d4af37;
-                    opacity: 0.7;
-                }
-
-                .tour-tooltip-footer {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: 20px;
-                    padding-top: 20px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.05);
-                }
-
-                .tour-tooltip-navigation {
-                    display: flex;
-                    gap: 12px;
-                    margin-left: auto;
+                    font-size: 1rem;
                 }
 
                 .tour-btn {
-                    padding: 12px 24px;
-                    border-radius: 12px;
-                    border: 1px solid rgba(212, 175, 55, 0.2);
-                    background: rgba(212, 175, 55, 0.1);
-                    color: #f5f5f5;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
+                    padding: 10px 18px;
+                    font-size: 0.9rem;
+                }
+
+                .tour-tooltip-footer {
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .tour-tooltip-navigation {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .tour-tooltip {
+                    padding: 15px;
+                }
+
+                .tour-tooltip-header {
+                    flex-direction: column;
+                    align-items: flex-start;
                     gap: 10px;
-                    font-family: 'Inter', sans-serif;
                 }
 
-                .tour-btn:hover {
-                    background: rgba(212, 175, 55, 0.2);
-                    transform: translateY(-2px);
-                    border-color: #d4af37;
+                .tour-tooltip-progress {
+                    align-self: flex-start;
                 }
 
-                .tour-btn.tour-finish {
-                    background: linear-gradient(135deg, #d4af37 0%, #c0c0c0 100%);
-                    color: #0a0a0a;
-                    border: none;
+                .tour-close {
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
                 }
-
-                .tour-btn.tour-finish:hover {
-                    box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
-                }
-
-                /* Tour Pointer */
-                .tour-pointer {
-                    position: fixed;
-                    width: 0;
-                    height: 0;
-                    border-style: solid;
-                    z-index: 10000;
-                    opacity: 0;
-                    visibility: hidden;
-                    transition: all 0.3s ease;
-                }
-
-                .tour-pointer.active {
-                    opacity: 1;
-                    visibility: visible;
-                }
-
-                .tour-pointer.top {
-                    border-width: 0 15px 15px 15px;
-                    border-color: transparent transparent #d4af37 transparent;
-                    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
-                }
-
-                .tour-pointer.bottom {
-                    border-width: 15px 15px 0 15px;
-                    border-color: #d4af37 transparent transparent transparent;
-                    filter: drop-shadow(0 -3px 6px rgba(0,0,0,0.4));
-                }
-
-                .tour-pointer.left {
-                    border-width: 15px 15px 15px 0;
-                    border-color: transparent #d4af37 transparent transparent;
-                    filter: drop-shadow(3px 0 6px rgba(0,0,0,0.4));
-                }
-
-                .tour-pointer.right {
-                    border-width: 15px 0 15px 15px;
-                    border-color: transparent transparent transparent #d4af37;
-                    filter: drop-shadow(-3px 0 6px rgba(0,0,0,0.4));
-                }
-
-                /* Highlighted Element */
-                .tour-highlighted {
-                    position: relative !important;
-                    z-index: 10002 !important;
-                    animation: element-glow 2s infinite;
-                }
-
-                @keyframes element-glow {
-                    0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.3); }
-                    50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.5); }
-                }
-
-                /* Responsive */
-                @media (max-width: 768px) {
-                    .tour-tooltip {
-                        min-width: 280px;
-                        max-width: 90%;
-                        margin: 15px;
-                        padding: 20px;
-                    }
-
-                    .tour-tooltip-title {
-                        font-size: 1.3rem;
-                    }
-
-                    .tour-tooltip-progress {
-                        padding: 6px 12px;
-                        font-size: 0.9rem;
-                    }
-
-                    .tour-tooltip-message {
-                        font-size: 1rem;
-                    }
-
-                    .tour-btn {
-                        padding: 10px 18px;
-                        font-size: 0.9rem;
-                    }
-
-                    .tour-tooltip-footer {
-                        flex-direction: column;
-                        gap: 12px;
-                    }
-
-                    .tour-tooltip-navigation {
-                        width: 100%;
-                        justify-content: center;
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .tour-tooltip {
-                        padding: 15px;
-                    }
-
-                    .tour-tooltip-header {
-                        flex-direction: column;
-                        align-items: flex-start;
-                        gap: 10px;
-                    }
-
-                    .tour-tooltip-progress {
-                        align-self: flex-start;
-                    }
-
-                    .tour-close {
-                        position: absolute;
-                        top: 15px;
-                        right: 15px;
-                    }
-                }
-            `;
-
-            // Add CSS to document
-            if (!document.getElementById('tour-styles')) {
-                const style = document.createElement('style');
-                style.id = 'tour-styles';
-                style.textContent = tourCSS;
-                document.head.appendChild(style);
             }
-            // Helper functions for tutorial
-            function showTourTips() {
-                const tips = [
-                    "💡 Pro Tip: Click on highlighted elements during the tour to advance faster",
-                    "🎯 Use 'Ctrl + Click' on Help & Support to restart tutorial anytime",
-                    "⌨️ During tour: Use arrow keys ← → to navigate, Space to next, Esc to skip",
-                    "📱 On mobile: Tap highlighted elements to move to next step",
-                    "💾 Remember: Your data auto-saves, but backup weekly for safety"
-                ];
+        `;
 
-                const randomTip = tips[Math.floor(Math.random() * tips.length)];
-                showNotification('Quick Tip 💡', randomTip);
+        // Add CSS to document
+        if (!document.getElementById('tour-styles')) {
+            const style = document.createElement('style');
+            style.id = 'tour-styles';
+            style.textContent = tourCSS;
+            document.head.appendChild(style);
+        }
+
+        // Helper functions for tutorial
+        function showTourTips() {
+            const tips = [
+                "💡 Pro Tip: Click on highlighted elements during the tour to advance faster",
+                "🎯 Use 'Ctrl + Click' on Help & Support to restart tutorial anytime",
+                "⌨️ During tour: Use arrow keys ← → to navigate, Space to next, Esc to skip",
+                "📱 On mobile: Tap highlighted elements to move to next step",
+                "💾 Remember: Your data auto-saves, but backup weekly for safety"
+            ];
+
+            const randomTip = tips[Math.floor(Math.random() * tips.length)];
+            showNotification('Quick Tip 💡', randomTip);
+        }
+
+        function showKeyboardShortcuts() {
+            showNotification('Keyboard Shortcuts ⌨️',
+                '• Ctrl+P: Print schedule\n• Ctrl+E: Export PDF\n• Ctrl+S: Show stats\n• Ctrl+H: This help\n• During tour: ← → Arrows to navigate\n• Escape: Close/Skip');
+        }
+
+        // Make the restart function globally accessible
+        window.restartTour = function() {
+            if (window.umulkherTour) {
+                window.umulkherTour.restart();
+            } else {
+                // Fallback if tour instance isn't available
+                localStorage.removeItem('umulkher-tour-v1');
+                localStorage.setItem('isFirstLogin', 'true');
+                showNotification('Tour Reset', 'Refresh the page to see the tutorial again!');
             }
-
-            function showKeyboardShortcuts() {
-                showNotification('Keyboard Shortcuts ⌨️',
-                    '• Ctrl+P: Print schedule\n• Ctrl+E: Export PDF\n• Ctrl+S: Show stats\n• Ctrl+H: This help\n• During tour: ← → Arrows to navigate\n• Escape: Close/Skip');
-            }
-
-            // Make the restart function globally accessible
-            window.restartTour = function() {
-                if (window.umulkherTour) {
-                    window.umulkherTour.restart();
-                } else {
-                    // Fallback if tour instance isn't available
-                    localStorage.removeItem('umulkher-tour-v1');
-                    localStorage.setItem('isFirstLogin', 'true');
-                    showNotification('Tour Reset', 'Refresh the page to see the tutorial again!');
-                }
-            };
-
+        };
