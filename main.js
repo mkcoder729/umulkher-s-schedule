@@ -1801,63 +1801,233 @@
             document.getElementById('pausePomodoro').classList.toggle('active', !pomodoroState.isRunning);
         }
 
-        // ====== VOICE COMMANDS ======
-        function toggleVoiceRecognition() {
-            if (!recognition) {
-                showNotification('Voice Not Supported', 'Voice recognition is not supported in this browser.');
-                return;
-            }
+// ====== VOICE COMMANDS ======
+function toggleVoiceRecognition() {
+    if (!recognition) {
+        showNotification('Voice Not Supported', 'Voice recognition is not supported in this browser.');
+        return;
+    }
 
-            if (isListening) {
-                recognition.stop();
-                isListening = false;
-            } else {
-                recognition.start();
-                isListening = true;
-                showNotification('Voice Active', 'Listening for commands...');
-            }
-            updateVoiceUI();
+    if (isListening) {
+        recognition.stop();
+        isListening = false;
+        showNotification('Voice Stopped', 'Voice recognition has been stopped.');
+    } else {
+        try {
+            recognition.start();
+            isListening = true;
+            showNotification('Voice Active', 'Listening for your commands... Speak now!');
+        } catch (error) {
+            console.error('Voice recognition error:', error);
+            showNotification('Voice Error', 'Could not start voice recognition. Please try again.');
+            isListening = false;
         }
+    }
+    updateVoiceUI();
+}
 
-        function handleVoiceCommand(event) {
-            const command = event.results[0][0].transcript.toLowerCase();
-            document.getElementById('voiceCommand').textContent = command;
+function handleVoiceCommand(event) {
+    const command = event.results[0][0].transcript;
+    const commandLower = command.toLowerCase();
+    document.getElementById('voiceCommand').textContent = `"${command}"`;
 
-            // Process commands
-            if (command.includes('next task')) {
-                showNotification('Voice Command', 'Moving to next task...');
-                // Logic to highlight next task
-            } else if (command.includes('mark done')) {
-                showNotification('Voice Command', 'Marking current task as done...');
-                // Logic to mark current task
-            } else if (command.includes('prayer time')) {
-                updateCurrentPrayer();
-                showNotification('Voice Command', 'Showing next prayer time...');
-            } else if (command.includes('open calendar')) {
-                document.getElementById('calendarBtn').click();
-                showNotification('Voice Command', 'Opening calendar...');
-            } else if (command.includes('start timer')) {
-                startPomodoro();
-                showNotification('Voice Command', 'Starting Pomodoro timer...');
-            } else {
-                showNotification('Voice Command', `Command not recognized: "${command}"`);
-            }
+    // Log the command
+    console.log('Voice command detected:', command);
 
-            // Send email notification for voice commands
-            sendEmail(
-                'Voice Command',
-                `Umulkher used voice command: "${command}"\nTime: ${new Date().toLocaleString()}`,
-                'voice',
-                'Voice Control'
-            );
+    // Process special commands first
+    let commandHandled = false;
+
+    if (commandLower.includes('next task') || commandLower.includes('next activity')) {
+        highlightNextTask();
+        showNotification('Voice Command', 'Moving to next task...');
+        commandHandled = true;
+    } else if (commandLower.includes('mark done') || commandLower.includes('mark complete') || commandLower.includes('task done')) {
+        markCurrentTask();
+        showNotification('Voice Command', 'Marking current task as done...');
+        commandHandled = true;
+    } else if (commandLower.includes('prayer time') || commandLower.includes('next prayer')) {
+        updateCurrentPrayer();
+        showNotification('Voice Command', 'Showing next prayer time...');
+        commandHandled = true;
+    } else if (commandLower.includes('open calendar') || commandLower.includes('show calendar')) {
+        document.getElementById('calendarBtn').click();
+        showNotification('Voice Command', 'Opening calendar...');
+        commandHandled = true;
+    } else if (commandLower.includes('start timer') || commandLower.includes('start pomodoro')) {
+        startPomodoro();
+        showNotification('Voice Command', 'Starting Pomodoro timer...');
+        commandHandled = true;
+    } else if (commandLower.includes('pause timer') || commandLower.includes('stop timer')) {
+        pausePomodoro();
+        showNotification('Voice Command', 'Pausing timer...');
+        commandHandled = true;
+    } else if (commandLower.includes('reset timer')) {
+        resetPomodoro();
+        showNotification('Voice Command', 'Resetting timer...');
+        commandHandled = true;
+    } else if (commandLower.includes('weather') || commandLower.includes('temperature')) {
+        renderWeather();
+        showNotification('Voice Command', 'Refreshing weather...');
+        commandHandled = true;
+    } else if (commandLower.includes('day') && commandLower.includes('switch')) {
+        handleDaySwitchCommand(commandLower);
+        commandHandled = true;
+    } else if (commandLower.includes('note') || commandLower.includes('journal')) {
+        document.getElementById('newNoteBtn').click();
+        showNotification('Voice Command', 'Opening note editor...');
+        commandHandled = true;
+    } else if (commandLower.includes('chat with khisa') || commandLower.includes('call khisa')) {
+        document.getElementById('chatRequestBtn').click();
+        showNotification('Voice Command', 'Requesting chat with Khisa...');
+        commandHandled = true;
+    } else if (commandLower.includes('help') || commandLower.includes('what can i say')) {
+        showVoiceHelp();
+        commandHandled = true;
+    }
+
+    // If no specific command was matched, still send it as a general voice input
+    if (!commandHandled) {
+        showNotification('Voice Input Received', `You said: "${command}"\nThis has been logged and sent to Khisa.`);
+    }
+
+    // ALWAYS send email notification for ANY voice command
+    sendEmail(
+        'Voice Command/Input',
+        `Umulkher used voice: "${command}"\n` +
+        `Time: ${new Date().toLocaleString()}\n` +
+        `Interpreted as: ${commandHandled ? 'Specific command' : 'General voice input'}\n` +
+        `Day: ${DAYS[currentDay]}`,
+        'voice',
+        'Voice Control'
+    );
+
+    // Also log to console for debugging
+    console.log(`Voice ${commandHandled ? 'command' : 'input'} processed:`, command);
+}
+
+// Helper function to switch days via voice
+function handleDaySwitchCommand(command) {
+    const daysMapping = {
+        'sunday': 0, 'sun': 0,
+        'monday': 1, 'mon': 1,
+        'tuesday': 2, 'tue': 2,
+        'wednesday': 3, 'wed': 3,
+        'thursday': 4, 'thu': 4,
+        'friday': 5, 'fri': 5,
+        'saturday': 6, 'sat': 6,
+        'today': new Date().getDay()
+    };
+
+    for (const [dayName, dayIndex] of Object.entries(daysMapping)) {
+        if (command.includes(dayName)) {
+            currentDay = dayIndex;
+            updateScheduleForDay(currentDay);
+            renderSchedule();
+            updateProgress();
+            showNotification('Voice Command', `Switched to ${DAYS[currentDay]}'s schedule`);
+            return;
         }
+    }
 
-        function updateVoiceUI() {
-            document.getElementById('voiceStatus').textContent =
-                isListening ? 'Listening...' : 'Ready for commands';
-            document.getElementById('voiceCommand').classList.toggle('voice-listening', isListening);
+    // If no specific day mentioned, try to extract number
+    const dayMatch = command.match(/(\d+)/);
+    if (dayMatch) {
+        const dayNum = parseInt(dayMatch[1]) - 1;
+        if (dayNum >= 0 && dayNum <= 6) {
+            currentDay = dayNum;
+            updateScheduleForDay(currentDay);
+            renderSchedule();
+            updateProgress();
+            showNotification('Voice Command', `Switched to ${DAYS[currentDay]}'s schedule`);
+            return;
         }
+    }
 
+    showNotification('Voice Command', 'Could not understand which day to switch to.');
+}
+
+// Function to highlight next task
+function highlightNextTask() {
+    const currentTasks = document.querySelectorAll('.time-item');
+    let foundCurrent = false;
+
+    for (const task of currentTasks) {
+        if (task.classList.contains('in-progress') || (!foundCurrent && !task.classList.contains('completed'))) {
+            task.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Add temporary highlight class
+            task.classList.add('task-highlighted');
+            setTimeout(() => {
+                task.classList.remove('task-highlighted');
+            }, 3000);
+            return;
+        }
+        if (task.classList.contains('completed')) {
+            foundCurrent = true;
+        }
+    }
+}
+
+// Function to mark current task
+function markCurrentTask() {
+    const currentTask = document.querySelector('.time-item.in-progress') ||
+                       document.querySelector('.time-item:not(.completed):not(.skipped)');
+
+    if (currentTask) {
+        const checkbox = currentTask.querySelector('.checkbox-input');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        }
+    } else {
+        showNotification('Voice Command', 'No current task found to mark.');
+    }
+}
+
+// Function to show voice help
+function showVoiceHelp() {
+    showNotification('Voice Commands Available',
+        'You can say things like:\n' +
+        '• "Next task" or "Mark done"\n' +
+        '• "Prayer time" or "Weather"\n' +
+        '• "Switch to Monday" or "Day 3"\n' +
+        '• "Start timer" or "Pause timer"\n' +
+        '• "Open calendar" or "New note"\n' +
+        '• "Chat with Khisa"\n\n' +
+        'ANY voice input will be sent to Khisa!'
+    );
+}
+
+function updateVoiceUI() {
+    const voiceStatus = document.getElementById('voiceStatus');
+    const voiceCommand = document.getElementById('voiceCommand');
+
+    if (voiceStatus) {
+        voiceStatus.textContent = isListening ? '🎤 Listening... Speak now!' : '🎤 Ready for commands';
+    }
+
+    if (voiceCommand) {
+        voiceCommand.textContent = isListening ? 'Listening...' : 'Say a command';
+        // Only add/remove class, no inline styles
+        if (isListening) {
+            voiceCommand.classList.add('voice-listening');
+        } else {
+            voiceCommand.classList.remove('voice-listening');
+        }
+    }
+
+    // Update voice button if it exists
+    const voiceBtn = document.getElementById('voiceBtn');
+    if (voiceBtn) {
+        if (isListening) {
+            voiceBtn.classList.add('active');
+            voiceBtn.innerHTML = '<i class="fas fa-microphone-alt"></i> Stop Listening';
+        } else {
+            voiceBtn.classList.remove('active');
+            voiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Voice Commands';
+        }
+    }
+}
         // ====== BACKUP/RESTORE ======
         function backupData() {
             const data = {
